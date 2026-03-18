@@ -1,0 +1,8 @@
+﻿
+> rms-frontend@0.0.0 build
+> tsc -b && vite build
+
+src/pages/Candidates/CandidateDetail.tsx(13,11): error TS6133: 'user' is declared but its value is never read.
+src/pages/Candidates/CreateCandidate.tsx(1,31): error TS1484: 'FormEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/pages/Interviews/InterviewEvaluation.tsx(1,31): error TS1484: 'FormEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/pages/Login/Login.tsx(1,20): error TS1484: 'FormEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.

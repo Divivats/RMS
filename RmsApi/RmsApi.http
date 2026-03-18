@@ -1,0 +1,6 @@
+@RmsApi_HostAddress = http://localhost:5275
+
+GET {{RmsApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
