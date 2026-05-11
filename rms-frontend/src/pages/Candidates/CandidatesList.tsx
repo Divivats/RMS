@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { candidatesApi } from '../../services/api';
+import { candidatesApi, BACKEND_URL } from '../../services/api';
 import type { CandidateListItem } from '../../types';
 
 export default function CandidatesList() {
@@ -67,7 +67,7 @@ export default function CandidatesList() {
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                             <div className="activity-avatar" style={{ width: 36, height: 36, fontSize: '0.8rem' }}>
-                                                {c.photoUrl ? <img src={`http://localhost:5275${c.photoUrl}`} alt="" /> : c.fullName.split(' ').map(n => n[0]).join('')}
+                                                {c.photoUrl ? <img src={`${BACKEND_URL}${c.photoUrl}`} alt="" /> : c.fullName.split(' ').map(n => n[0]).join('')}
                                             </div>
                                             <div>
                                                 <div style={{ fontWeight: 600 }}>{c.fullName}</div>

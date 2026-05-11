@@ -33,6 +33,11 @@ namespace RmsApi.DTOs
         public List<InterviewStepDto> InterviewSteps { get; set; } = new();
     }
 
+    public class UpdateJobStatusRequest
+    {
+        public string Status { get; set; } = string.Empty;
+    }
+
     public class InterviewStepDto
     {
         public int StepNumber { get; set; }
@@ -179,5 +184,32 @@ namespace RmsApi.DTOs
     {
         public string StageName { get; set; } = string.Empty;
         public int Count { get; set; }
+    }
+
+    // User Management
+    public class UserListDto
+    {
+        public int Id { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+    }
+
+    public class CreateUserRequest
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+
+    public class UpdateUserRequest
+    {
+        public string? FullName { get; set; }
+        public string? Email { get; set; }
+        public string? Password { get; set; }
+        public bool? IsActive { get; set; }
     }
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { interviewsApi, candidatesApi } from '../../services/api';
+import { interviewsApi, candidatesApi, BACKEND_URL } from '../../services/api';
 import type { EvaluationQuestion, CandidateDetail } from '../../types';
 
 export default function InterviewEvaluation() {
@@ -116,7 +116,7 @@ export default function InterviewEvaluation() {
                 <div className="card-body">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                         <div className="profile-photo" style={{ width: 60, height: 60, fontSize: '1.3rem' }}>
-                            {candidate.photoUrl ? <img src={`http://localhost:5275${candidate.photoUrl}`} alt="" /> : candidate.fullName.split(' ').map(n => n[0]).join('')}
+                            {candidate.photoUrl ? <img src={`${BACKEND_URL}${candidate.photoUrl}`} alt="" /> : candidate.fullName.split(' ').map(n => n[0]).join('')}
                         </div>
                         <div>
                             <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{candidate.fullName}</div>

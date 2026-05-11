@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { jobsApi } from '../../services/api';
+import { jobsApi, BACKEND_URL } from '../../services/api';
 import type { JobPosition } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal';
@@ -45,7 +45,7 @@ export default function JobDetail() {
         }
         setUpdating(true);
         try {
-            await jobsApi.update(job.id, { status: newStatus });
+            await jobsApi.updateStatus(job.id, newStatus);
             setJob({ ...job, status: newStatus });
             setStatusModalOpen(false);
         } catch (err) {
@@ -192,7 +192,7 @@ export default function JobDetail() {
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                             <div className="activity-avatar" style={{ width: 32, height: 32, fontSize: '0.75rem' }}>
-                                                {c.photoUrl ? <img src={`http://localhost:5275${c.photoUrl}`} alt="" /> : c.fullName.split(' ').map(n => n[0]).join('')}
+                                                {c.photoUrl ? <img src={`${BACKEND_URL}${c.photoUrl}`} alt="" /> : c.fullName.split(' ').map(n => n[0]).join('')}
                                             </div>
                                             <div><div style={{ fontWeight: 600 }}>{c.fullName}</div><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{c.email}</div></div>
                                         </div>

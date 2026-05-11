@@ -167,20 +167,9 @@ GO
 -- Seed Data
 -- ============================================
 
--- Seed Users (passwords are BCrypt hashed)
--- hr@rms.com / Admin@123
--- consultant@rms.com / Consult@123
-IF NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'hr@rms.com')
-BEGIN
-    INSERT INTO Users (FullName, Email, PasswordHash, Role)
-    VALUES ('Sarah Mitchell', 'hr@rms.com', '$2a$11$7fqjGIK0beJAjN0aINBin.gH1spzLiLhy6OIe369cjkMCCM1ytZuS', 'Admin');
-END
-
-IF NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'consultant@rms.com')
-BEGIN
-    INSERT INTO Users (FullName, Email, PasswordHash, Role)
-    VALUES ('James Parker', 'consultant@rms.com', '$2a$11$98MwcKYcTrEJHjbLInA.2uj2oY3ZNvsUbNvpGnKpGPIhZBudxJK3m', 'Consultant');
-END
+-- NOTE: Admin account (Shiv Bora / shiv@samsung.com / Shiv@rms123) is auto-created
+-- by the backend (Program.cs) on first startup. No need to seed users here.
+-- Consultant accounts can be created via the Admin UI.
 GO
 
 -- Seed Evaluation Questions

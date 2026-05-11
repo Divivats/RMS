@@ -32,19 +32,45 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// CORS
+// CORS — Allow any origin on the local network
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReact", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+        policy.AllowAnyOrigin()
               .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowAnyMethod();
     });
 });
 
 var app = builder.Build();
+
+// ── Auto-seed Admin account on startup ──
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        // Ensure database exists (tables must already be created via SQL script)
+        if (!db.Users.Any(u => u.Role == "Admin"))
+        {
+            db.Users.Add(new RmsApi.Models.User
+            {
+                FullName = "Shiv Bora",
+                Email = "shiv@samsung.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Shiv@rms123"),
+                Role = "Admin",
+                IsActive = true
+            });
+            db.SaveChanges();
+            Console.WriteLine("[RMS] Admin account created: shiv@samsung.com / Shiv@rms123");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[RMS] Seed skipped (DB may not be ready): {ex.Message}");
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -52,7 +78,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("AllowReact");
+app.UseCors("AllowAll");
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();

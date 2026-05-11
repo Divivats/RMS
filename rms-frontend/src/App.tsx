@@ -10,6 +10,7 @@ import CandidatesList from './pages/Candidates/CandidatesList';
 import CreateCandidate from './pages/Candidates/CreateCandidate';
 import CandidateDetail from './pages/Candidates/CandidateDetail';
 import InterviewEvaluation from './pages/Interviews/InterviewEvaluation';
+import ConsultantManagement from './pages/Users/ConsultantManagement';
 import './index.css';
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -32,6 +33,7 @@ function App() {
             <Route path="/candidates/create" element={<AdminRoute><CreateCandidate /></AdminRoute>} />
             <Route path="/candidates/:id" element={<CandidateDetail />} />
             <Route path="/interviews/:candidateId/step/:stepNumber" element={<InterviewEvaluation />} />
+            <Route path="/consultants" element={<AdminRoute><ConsultantManagement /></AdminRoute>} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

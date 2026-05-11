@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { candidatesApi } from '../../services/api';
+import { candidatesApi, BACKEND_URL } from '../../services/api';
 import type { CandidateDetail as CandidateDetailType } from '../../types';
+import { generateCandidatePdf } from '../../utils/generateCandidatePdf';
 export default function CandidateDetail() {
     const { id } = useParams();
     const [candidate, setCandidate] = useState<CandidateDetailType | null>(null);
@@ -41,7 +42,15 @@ export default function CandidateDetail() {
         <div>
             <div className="page-header">
                 <h2>Candidate Profile</h2>
-                <button className="btn btn-secondary" onClick={() => navigate(-1)}>← Back</button>
+                <div className="page-header-actions">
+                    <button className="btn btn-primary" onClick={() => generateCandidatePdf(candidate)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Download Report
+                    </button>
+                    <button className="btn btn-secondary" onClick={() => navigate(-1)}>← Back</button>
+                </div>
             </div>
 
             {/* Profile Header */}
@@ -50,7 +59,7 @@ export default function CandidateDetail() {
                     <div className="profile-header">
                         <div className="profile-photo">
                             {candidate.photoUrl ? (
-                                <img src={`http://localhost:5275${candidate.photoUrl}`} alt={candidate.fullName} />
+                                <img src={`${BACKEND_URL}${candidate.photoUrl}`} alt={candidate.fullName} />
                             ) : initials}
                         </div>
                         <div className="profile-info">

@@ -194,6 +194,20 @@ namespace RmsApi.Controllers
             return Ok(new { id = job.Id });
         }
 
+        [HttpPatch("{id}/status")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateJobStatusRequest request)
+        {
+            var job = await _db.JobPositions.FindAsync(id);
+            if (job == null) return NotFound();
+
+            job.Status = request.Status;
+            job.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+            return Ok(new { id = job.Id, status = job.Status });
+        }
+
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)

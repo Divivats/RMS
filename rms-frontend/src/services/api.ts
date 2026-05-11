@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:5275/api';
+const API_BASE = `http://${window.location.hostname}:5275/api`;
+export const BACKEND_URL = `http://${window.location.hostname}:5275`;
 
 const api = axios.create({
     baseURL: API_BASE,
@@ -43,6 +44,7 @@ export const jobsApi = {
     getById: (id: number) => api.get(`/jobpositions/${id}`),
     create: (data: any) => api.post('/jobpositions', data),
     update: (id: number, data: any) => api.put(`/jobpositions/${id}`, data),
+    updateStatus: (id: number, status: string) => api.patch(`/jobpositions/${id}/status`, { status }),
     delete: (id: number) => api.delete(`/jobpositions/${id}`),
 };
 
@@ -67,6 +69,16 @@ export const interviewsApi = {
     getEvaluation: (interviewId: number) =>
         api.get(`/interviews/evaluation/${interviewId}`),
     advance: (data: any) => api.post('/interviews/advance', data),
+};
+
+export const usersApi = {
+    getAll: () => api.get('/users'),
+    getById: (id: number) => api.get(`/users/${id}`),
+    create: (data: { fullName: string; email: string; password: string }) =>
+        api.post('/users', data),
+    update: (id: number, data: { fullName?: string; email?: string; password?: string; isActive?: boolean }) =>
+        api.put(`/users/${id}`, data),
+    delete: (id: number) => api.delete(`/users/${id}`),
 };
 
 export default api;

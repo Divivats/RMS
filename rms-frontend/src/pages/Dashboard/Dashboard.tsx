@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { dashboardApi, candidatesApi, jobsApi } from '../../services/api';
+import { dashboardApi, candidatesApi, jobsApi, BACKEND_URL } from '../../services/api';
 import type { DashboardStats, RecentActivity, PipelineStage, CandidateListItem } from '../../types';
 import Modal from '../../components/Modal';
 
@@ -250,7 +250,7 @@ export default function Dashboard() {
                                 <div className="activity-item" key={i}>
                                     <div className="activity-avatar">
                                         {item.candidatePhoto ? (
-                                            <img src={`http://localhost:5275${item.candidatePhoto}`} alt="" />
+                                            <img src={`${BACKEND_URL}${item.candidatePhoto}`} alt="" />
                                         ) : (
                                             item.candidateName.split(' ').map(n => n[0]).join('')
                                         )}
@@ -317,7 +317,7 @@ export default function Dashboard() {
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                             <div className="activity-avatar" style={{ width: 32, height: 32, fontSize: '0.75rem' }}>
                                                 {c.photoUrl ? (
-                                                    <img src={`http://localhost:5275${c.photoUrl}`} alt="" />
+                                                    <img src={`${BACKEND_URL}${c.photoUrl}`} alt="" />
                                                 ) : (
                                                     c.fullName.split(' ').map(n => n[0]).join('')
                                                 )}
