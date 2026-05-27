@@ -90,6 +90,7 @@ namespace RmsApi.DTOs
         public int TotalSteps { get; set; }
         public string? JobTitle { get; set; }
         public string? JobId { get; set; }
+        public decimal? AtsScore { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 
@@ -101,6 +102,22 @@ namespace RmsApi.DTOs
         public string? Department { get; set; }
         public string? ManagerName { get; set; }
         public int JobPositionId { get; set; }
+
+        // Education
+        public string? Education10thSchool { get; set; }
+        public decimal? Education10thPercentage { get; set; }
+        public string? Education12thSchool { get; set; }
+        public decimal? Education12thPercentage { get; set; }
+        public string? EducationCollegeName { get; set; }
+        public string? EducationCollegeDegree { get; set; }
+        public decimal? EducationCollegeCGPA { get; set; }
+
+        // ATS
+        public decimal? AtsDeterministicScore { get; set; }
+        public decimal? AtsAiScore { get; set; }
+        public string? AtsScoreDetails { get; set; }
+        public string? AtsStatus { get; set; }
+
         public List<CandidateInterviewDto> Interviews { get; set; } = new();
     }
 
@@ -211,5 +228,88 @@ namespace RmsApi.DTOs
         public string? Email { get; set; }
         public string? Password { get; set; }
         public bool? IsActive { get; set; }
+    }
+
+    // ── Onboarding DTOs ──
+
+    public class MoveToOnboardingRequest
+    {
+        public int CandidateId { get; set; }
+        public string Type { get; set; } = "Employee";
+        public string? GhrId { get; set; }
+        public string? KnoxId { get; set; }
+        public string? ProjectLead { get; set; }
+        public string? ProjectManager { get; set; }
+        public DateTime DateOfJoining { get; set; }
+        public string? Department { get; set; }
+        public string? Designation { get; set; }
+        public int EvaluationMonths { get; set; } = 6;
+    }
+
+    public class OnboardingListDto
+    {
+        public int Id { get; set; }
+        public int CandidateId { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string? PhotoUrl { get; set; }
+        public string? Email { get; set; }
+        public string Type { get; set; } = string.Empty;
+        public string? GhrId { get; set; }
+        public string? Department { get; set; }
+        public string? Designation { get; set; }
+        public DateTime DateOfJoining { get; set; }
+        public int EvaluationMonths { get; set; }
+        public int CompletedMilestones { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class OnboardingDetailDto : OnboardingListDto
+    {
+        public string? Phone { get; set; }
+        public string? KnoxId { get; set; }
+        public string? ProjectLead { get; set; }
+        public string? ProjectManager { get; set; }
+        public string? Skills { get; set; }
+        public decimal? ExperienceYears { get; set; }
+        public string? CurrentCompany { get; set; }
+
+        // Education
+        public string? Education10thSchool { get; set; }
+        public decimal? Education10thPercentage { get; set; }
+        public string? Education12thSchool { get; set; }
+        public decimal? Education12thPercentage { get; set; }
+        public string? EducationCollegeName { get; set; }
+        public string? EducationCollegeDegree { get; set; }
+        public decimal? EducationCollegeCGPA { get; set; }
+
+        public List<MilestoneDto> Milestones { get; set; } = new();
+    }
+
+    public class MilestoneDto
+    {
+        public int Id { get; set; }
+        public int MonthNumber { get; set; }
+        public string? BuddyReportUrl { get; set; }
+        public string? OneToOneReportUrl { get; set; }
+        public string? MidTermReportUrl { get; set; }
+        public int? PerformanceRating { get; set; }
+        public string? PerformanceRemarks { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime UnlocksAt { get; set; }
+        public bool IsUnlocked { get; set; }
+        public bool IsMidTermMonth { get; set; }
+        public DateTime? CompletedAt { get; set; }
+    }
+
+    public class UpdateOnboardingRequest
+    {
+        public string? GhrId { get; set; }
+        public string? KnoxId { get; set; }
+        public string? ProjectLead { get; set; }
+        public string? ProjectManager { get; set; }
+        public string? Department { get; set; }
+        public string? Designation { get; set; }
+        public string? Status { get; set; }
     }
 }

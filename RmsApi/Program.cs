@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using RmsApi.Data;
+using RmsApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +32,13 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// ATS Services
+builder.Services.AddHttpClient<ThorDocumentService>();
+builder.Services.AddScoped<ResumeParserService>();
+builder.Services.AddSingleton<AtsScoringService>();
+builder.Services.AddHttpClient<SemcatAiService>();
+builder.Services.AddScoped<AtsOrchestrator>();
 
 // CORS — Allow any origin on the local network
 builder.Services.AddCors(options =>

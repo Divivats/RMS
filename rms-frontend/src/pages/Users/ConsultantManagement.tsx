@@ -126,7 +126,7 @@ export default function ConsultantManagement() {
         return (
             <div>
                 <div className="page-header">
-                    <h2>Consultant Accounts</h2>
+                    <h2>Manage Accounts</h2>
                 </div>
                 <div className="card">
                     <div style={{ padding: 24 }}>
@@ -144,13 +144,13 @@ export default function ConsultantManagement() {
     return (
         <div>
             <div className="page-header">
-                <h2>Consultant Accounts</h2>
+                <h2>Manage Accounts</h2>
                 <div className="page-header-actions">
                     <button className="btn btn-primary" onClick={() => { setCreateForm({ fullName: '', email: '', password: '' }); setCreateError(''); setCreateOpen(true); }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                             <path d="M12 5v14M5 12h14" />
                         </svg>
-                        New Consultant
+                        New Account
                     </button>
                 </div>
             </div>
@@ -169,7 +169,7 @@ export default function ConsultantManagement() {
                     />
                 </div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    {filtered.length} consultant{filtered.length !== 1 ? 's' : ''}
+                    {filtered.length} account{filtered.length !== 1 ? 's' : ''}
                 </div>
             </div>
 
@@ -227,7 +227,7 @@ export default function ConsultantManagement() {
                             {filtered.length === 0 && (
                                 <tr>
                                     <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 32 }}>
-                                        {searchQuery ? 'No consultants matching your search.' : 'No consultant accounts yet. Create one to get started.'}
+                                        {searchQuery ? 'No accounts matching your search.' : 'No accounts yet. Create one to get started.'}
                                     </td>
                                 </tr>
                             )}
@@ -237,7 +237,7 @@ export default function ConsultantManagement() {
             </div>
 
             {/* ── Create Modal ── */}
-            <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="Create Consultant Account" width={480}>
+            <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="Create Account" width={480}>
                 <div>
                     {createError && <div className="login-error" style={{ marginBottom: 16 }}>{createError}</div>}
                     <div className="form-group">
@@ -265,7 +265,7 @@ export default function ConsultantManagement() {
             </Modal>
 
             {/* ── Edit Modal ── */}
-            <Modal isOpen={editOpen} onClose={() => setEditOpen(false)} title="Edit Consultant Account" width={480}>
+            <Modal isOpen={editOpen} onClose={() => setEditOpen(false)} title="Edit Account" width={480}>
                 <div>
                     {editError && <div className="login-error" style={{ marginBottom: 16 }}>{editError}</div>}
                     <div className="form-group">
@@ -307,7 +307,7 @@ export default function ConsultantManagement() {
             </Modal>
 
             {/* ── Delete Confirm Modal ── */}
-            <Modal isOpen={deleteOpen} onClose={() => setDeleteOpen(false)} title="Delete Consultant Account" width={420}>
+            <Modal isOpen={deleteOpen} onClose={() => setDeleteOpen(false)} title="Delete Account" width={420}>
                 <div>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 8 }}>
                         Are you sure you want to delete <strong>{deleteUser?.fullName}</strong>'s account?

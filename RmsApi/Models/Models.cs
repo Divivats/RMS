@@ -60,6 +60,16 @@ namespace RmsApi.Models
         public string? Skills { get; set; }
         public decimal? AlphaCoderScore { get; set; }
         public string? Notes { get; set; }
+
+        // Education
+        public string? Education10thSchool { get; set; }
+        public decimal? Education10thPercentage { get; set; }
+        public string? Education12thSchool { get; set; }
+        public decimal? Education12thPercentage { get; set; }
+        public string? EducationCollegeName { get; set; }
+        public string? EducationCollegeDegree { get; set; }
+        public decimal? EducationCollegeCGPA { get; set; }
+
         public int JobPositionId { get; set; }
         public JobPosition? JobPosition { get; set; }
         public int CurrentStepNumber { get; set; } = 0;
@@ -68,6 +78,13 @@ namespace RmsApi.Models
         public User? CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
+
+        // ATS Score
+        public decimal? AtsScore { get; set; }
+        public decimal? AtsDeterministicScore { get; set; }
+        public decimal? AtsAiScore { get; set; }
+        public string? ResumeTextContent { get; set; }
+        public string? AtsScoreDetails { get; set; }
 
         public ICollection<CandidateInterview> CandidateInterviews { get; set; } = new List<CandidateInterview>();
     }
@@ -111,5 +128,47 @@ namespace RmsApi.Models
         public EvaluationQuestion? EvaluationQuestion { get; set; }
         public int Rating { get; set; }
         public string? Remarks { get; set; }
+    }
+
+    // ── Onboarding Models ──
+
+    public class OnboardingRecord
+    {
+        public int Id { get; set; }
+        public int CandidateId { get; set; }
+        public Candidate? Candidate { get; set; }
+        public string Type { get; set; } = "Employee"; // Employee or Intern
+        public string? GhrId { get; set; }
+        public string? KnoxId { get; set; }
+        public string? ProjectLead { get; set; }
+        public string? ProjectManager { get; set; }
+        public DateTime DateOfJoining { get; set; }
+        public string? Department { get; set; }
+        public string? Designation { get; set; }
+        public int EvaluationMonths { get; set; } = 6;
+        public string Status { get; set; } = "Active";
+        public int CreatedById { get; set; }
+        public User? CreatedBy { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
+
+        public ICollection<OnboardingMilestone> Milestones { get; set; } = new List<OnboardingMilestone>();
+    }
+
+    public class OnboardingMilestone
+    {
+        public int Id { get; set; }
+        public int OnboardingRecordId { get; set; }
+        public OnboardingRecord? OnboardingRecord { get; set; }
+        public int MonthNumber { get; set; }
+        public string? BuddyReportUrl { get; set; }
+        public string? OneToOneReportUrl { get; set; }
+        public string? MidTermReportUrl { get; set; }
+        public int? PerformanceRating { get; set; }
+        public string? PerformanceRemarks { get; set; }
+        public string Status { get; set; } = "Pending";
+        public DateTime UnlocksAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

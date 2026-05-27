@@ -50,6 +50,7 @@ export interface CandidateListItem {
   totalSteps: number;
   jobTitle?: string;
   jobId?: string;
+  atsScore?: number;
   createdAt: string;
 }
 
@@ -60,6 +61,19 @@ export interface CandidateDetail extends CandidateListItem {
   department?: string;
   managerName?: string;
   jobPositionId: number;
+  // Education
+  education10thSchool?: string;
+  education10thPercentage?: number;
+  education12thSchool?: string;
+  education12thPercentage?: number;
+  educationCollegeName?: string;
+  educationCollegeDegree?: string;
+  educationCollegeCGPA?: number;
+  // ATS
+  atsDeterministicScore?: number;
+  atsAiScore?: number;
+  atsScoreDetails?: string;
+  atsStatus?: string;
   interviews: CandidateInterview[];
 }
 
@@ -116,4 +130,65 @@ export interface RecentActivity {
 export interface PipelineStage {
   stageName: string;
   count: number;
+}
+
+// ── Onboarding Types ──
+
+export interface OnboardingListItem {
+  id: number;
+  candidateId: number;
+  fullName: string;
+  photoUrl?: string;
+  email?: string;
+  type: 'Employee' | 'Intern';
+  ghrId?: string;
+  department?: string;
+  designation?: string;
+  dateOfJoining: string;
+  evaluationMonths: number;
+  completedMilestones: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface OnboardingDetail extends OnboardingListItem {
+  phone?: string;
+  knoxId?: string;
+  projectLead?: string;
+  projectManager?: string;
+  skills?: string;
+  experienceYears?: number;
+  currentCompany?: string;
+  education10thSchool?: string;
+  education10thPercentage?: number;
+  education12thSchool?: string;
+  education12thPercentage?: number;
+  educationCollegeName?: string;
+  educationCollegeDegree?: string;
+  educationCollegeCGPA?: number;
+  milestones: Milestone[];
+}
+
+export interface Milestone {
+  id: number;
+  monthNumber: number;
+  buddyReportUrl?: string;
+  oneToOneReportUrl?: string;
+  midTermReportUrl?: string;
+  performanceRating?: number;
+  performanceRemarks?: string;
+  status: string;
+  unlocksAt: string;
+  isUnlocked: boolean;
+  isMidTermMonth: boolean;
+  completedAt?: string;
+}
+
+export interface OnboardingStats {
+  totalEmployees: number;
+  activeEmployees: number;
+  totalInterns: number;
+  activeInterns: number;
+  completed: number;
+  total: number;
 }

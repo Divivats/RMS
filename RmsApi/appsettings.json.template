@@ -10,8 +10,17 @@
     "DefaultConnection": "Server=(local)\\SQLEXPRESS;Database=RMS_DB;Trusted_Connection=True;TrustServerCertificate=True;"
   },
   "Jwt": {
-    "Key": "RmsSecretKey2024VerySecureAtLeast32CharsLong!!",
+    "Key": "YOUR_JWT_SECRET_KEY_HERE_MUST_BE_32_CHARS_LONG!",
     "Issuer": "RmsApi",
     "Audience": "RmsApp"
+  },
+  "Semcat": {
+    "BaseUrl": "http://166.79.26.108:2048/semcat",
+    "ApiKey": "YOUR_SEMCAT_API_KEY_HERE",
+    "ModelName": "SEM_GO120"
+  },
+  "Thor": {
+    "BaseUrl": "http://thor-api.a-sol.samsungsmartwork.net",
+    "ApiKey": "YOUR_THOR_API_KEY_HERE"
   }
 }

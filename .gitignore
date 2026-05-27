@@ -24,3 +24,20 @@ obj/
 # Misc
 .DS_Store
 *.log
+
+# User secrets and development configurations
+RmsApi/appsettings.json
+
+# User uploads and candidate files (automatically created by backend if missing)
+RmsApi/wwwroot/uploads/
+
+# IDE directories
+.idea/
+.vscode/
+*.suo
+*.user
+*.sln.docstates
+
+# Root level temporary assets
+/Markdown to PDF.pdf
+/Recovered_Image.png

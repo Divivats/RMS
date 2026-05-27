@@ -21,7 +21,8 @@ namespace RmsApi.Controllers
         private string GetUserRole() => User.FindFirstValue(ClaimTypes.Role)!;
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] string? status)
+        public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] string? status,
+            [FromQuery] DateTime? dateFrom, [FromQuery] DateTime? dateTo)
         {
             var query = _db.JobPositions
                 .Include(j => j.Candidates)
@@ -32,6 +33,18 @@ namespace RmsApi.Controllers
 
             if (!string.IsNullOrWhiteSpace(status))
                 query = query.Where(j => j.Status == status);
+
+            // Date filter — default to current year
+            if (dateFrom.HasValue)
+                query = query.Where(j => j.CreatedAt >= dateFrom.Value);
+            else
+                query = query.Where(j => j.CreatedAt.Year >= DateTime.UtcNow.Year);
+
+            if (dateTo.HasValue)
+            {
+                var dateToEnd = dateTo.Value.Date.AddDays(1);
+                query = query.Where(j => j.CreatedAt < dateToEnd);
+            }
 
             var jobs = await query.OrderByDescending(j => j.CreatedAt).Select(j => new JobPositionListDto
             {

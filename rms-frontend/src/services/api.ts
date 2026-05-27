@@ -33,13 +33,16 @@ export const authApi = {
 };
 
 export const dashboardApi = {
-    getStats: () => api.get('/dashboard/stats'),
-    getRecentActivity: () => api.get('/dashboard/recent-activity'),
-    getPipeline: () => api.get('/dashboard/pipeline'),
+    getStats: (params?: { dateFrom?: string; dateTo?: string }) =>
+        api.get('/dashboard/stats', { params }),
+    getRecentActivity: (params?: { dateFrom?: string; dateTo?: string }) =>
+        api.get('/dashboard/recent-activity', { params }),
+    getPipeline: (params?: { dateFrom?: string; dateTo?: string }) =>
+        api.get('/dashboard/pipeline', { params }),
 };
 
 export const jobsApi = {
-    getAll: (params?: { search?: string; status?: string }) =>
+    getAll: (params?: { search?: string; status?: string; dateFrom?: string; dateTo?: string }) =>
         api.get('/jobpositions', { params }),
     getById: (id: number) => api.get(`/jobpositions/${id}`),
     create: (data: any) => api.post('/jobpositions', data),
@@ -49,7 +52,7 @@ export const jobsApi = {
 };
 
 export const candidatesApi = {
-    getAll: (params?: { search?: string; status?: string; jobPositionId?: number }) =>
+    getAll: (params?: { search?: string; status?: string; jobPositionId?: number; dateFrom?: string; dateTo?: string }) =>
         api.get('/candidates', { params }),
     getById: (id: number) => api.get(`/candidates/${id}`),
     create: (formData: FormData) =>
@@ -60,6 +63,15 @@ export const candidatesApi = {
         api.put(`/candidates/${id}`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
         }),
+    uploadResume: (candidateId: number, file: File) => {
+        const fd = new FormData();
+        fd.append('resume', file);
+        return api.post(`/candidates/${candidateId}/upload-resume`, fd, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    },
+    rescoreAts: (candidateId: number) =>
+        api.post(`/candidates/${candidateId}/rescore-ats`),
 };
 
 export const interviewsApi = {
@@ -79,6 +91,28 @@ export const usersApi = {
     update: (id: number, data: { fullName?: string; email?: string; password?: string; isActive?: boolean }) =>
         api.put(`/users/${id}`, data),
     delete: (id: number) => api.delete(`/users/${id}`),
+};
+
+export const onboardingApi = {
+    getAll: (params?: { type?: string; search?: string; status?: string; dateFrom?: string; dateTo?: string }) =>
+        api.get('/onboarding', { params }),
+    getStats: (params?: { dateFrom?: string; dateTo?: string }) =>
+        api.get('/onboarding/stats', { params }),
+    getById: (id: number) => api.get(`/onboarding/${id}`),
+    move: (data: any) => api.post('/onboarding/move', data),
+    update: (id: number, data: any) => api.put(`/onboarding/${id}`, data),
+    promote: (id: number) => api.post(`/onboarding/${id}/promote`),
+    complete: (id: number, accepted: boolean) => api.post(`/onboarding/${id}/complete`, { accepted }),
+    uploadMilestoneDoc: (milestoneId: number, docType: string, file: File) => {
+        const fd = new FormData();
+        fd.append('docType', docType);
+        fd.append('file', file);
+        return api.post(`/onboarding/milestone/${milestoneId}/upload`, fd, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    },
+    updateMilestone: (milestoneId: number, data: { performanceRating?: number; performanceRemarks?: string }) =>
+        api.put(`/onboarding/milestone/${milestoneId}`, data),
 };
 
 export default api;

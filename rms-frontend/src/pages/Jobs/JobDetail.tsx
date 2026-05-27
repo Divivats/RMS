@@ -15,6 +15,16 @@ export default function JobDetail() {
     const navigate = useNavigate();
     const { isAdmin } = useAuth();
 
+    // Edit modal state
+    const [editOpen, setEditOpen] = useState(false);
+    const [editForm, setEditForm] = useState({
+        title: '', department: '', location: '', managerName: '',
+        numberOfPositions: 1, description: '', requirements: '',
+        salaryRangeMin: '' as string | number, salaryRangeMax: '' as string | number,
+    });
+    const [editError, setEditError] = useState('');
+    const [saving, setSaving] = useState(false);
+
     useEffect(() => { loadJob(); }, [id]);
 
     const loadJob = async () => {
@@ -54,6 +64,47 @@ export default function JobDetail() {
         } finally {
             setUpdating(false);
         }
+    };
+
+    // ── Edit Job ──
+    const openEditModal = () => {
+        if (!job) return;
+        setEditForm({
+            title: job.title,
+            department: job.department,
+            location: job.location || '',
+            managerName: job.managerName,
+            numberOfPositions: job.numberOfPositions,
+            description: job.description || '',
+            requirements: job.requirements || '',
+            salaryRangeMin: job.salaryRangeMin || '',
+            salaryRangeMax: job.salaryRangeMax || '',
+        });
+        setEditError('');
+        setEditOpen(true);
+    };
+
+    const handleEditSave = async () => {
+        if (!job) return;
+        setEditError('');
+        if (!editForm.title.trim() || !editForm.department.trim() || !editForm.managerName.trim()) {
+            setEditError('Title, department, and manager name are required.');
+            return;
+        }
+        setSaving(true);
+        try {
+            await jobsApi.update(job.id, {
+                ...editForm,
+                interviewStepCount: job.interviewStepCount,
+                salaryRangeMin: editForm.salaryRangeMin ? Number(editForm.salaryRangeMin) : null,
+                salaryRangeMax: editForm.salaryRangeMax ? Number(editForm.salaryRangeMax) : null,
+                interviewSteps: [],
+            });
+            setEditOpen(false);
+            loadJob();
+        } catch (err: any) {
+            setEditError(err.response?.data?.message || 'Failed to save changes.');
+        } finally { setSaving(false); }
     };
 
     if (loading) {
@@ -113,6 +164,14 @@ export default function JobDetail() {
                     <h2>{job.title}</h2>
                 </div>
                 <div className="page-header-actions">
+                    {isAdmin && (
+                        <button className="btn btn-secondary" onClick={openEditModal}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                            Edit Position
+                        </button>
+                    )}
                     <button className="btn btn-secondary" onClick={() => navigate('/jobs')}>← Back</button>
                     {isAdmin && <button className="btn btn-primary" onClick={() => navigate('/candidates/create', { state: { jobId: job.id } })}>+ Add Candidate</button>}
                 </div>
@@ -228,31 +287,16 @@ export default function JobDetail() {
                             <label
                                 key={status}
                                 style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 12,
-                                    padding: '12px 16px',
-                                    borderRadius: 'var(--radius-md)',
+                                    display: 'flex', alignItems: 'center', gap: 12,
+                                    padding: '12px 16px', borderRadius: 'var(--radius-md)',
                                     border: `2px solid ${newStatus === status ? 'var(--accent)' : 'var(--border)'}`,
                                     background: newStatus === status ? 'var(--accent-bg)' : 'transparent',
-                                    cursor: 'pointer',
-                                    transition: 'all var(--transition-fast)',
+                                    cursor: 'pointer', transition: 'all var(--transition-fast)',
                                 }}
                             >
-                                <input
-                                    type="radio"
-                                    name="job-status"
-                                    value={status}
-                                    checked={newStatus === status}
-                                    onChange={() => setNewStatus(status)}
-                                    style={{ accentColor: 'var(--accent)' }}
-                                />
-                                <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                                    {status === 'OnHold' ? 'On Hold' : status}
-                                </span>
-                                <span style={{ marginLeft: 'auto' }}>
-                                    {getStatusBadge(status)}
-                                </span>
+                                <input type="radio" name="job-status" value={status} checked={newStatus === status} onChange={() => setNewStatus(status)} style={{ accentColor: 'var(--accent)' }} />
+                                <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{status === 'OnHold' ? 'On Hold' : status}</span>
+                                <span style={{ marginLeft: 'auto' }}>{getStatusBadge(status)}</span>
                             </label>
                         ))}
                     </div>
@@ -260,6 +304,57 @@ export default function JobDetail() {
                         <button className="btn btn-secondary" onClick={() => setStatusModalOpen(false)} disabled={updating}>Cancel</button>
                         <button className="btn btn-primary" onClick={handleStatusChange} disabled={updating || newStatus === job.status}>
                             {updating ? 'Updating...' : 'Update Status'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Edit Position Modal */}
+            <Modal isOpen={editOpen} onClose={() => setEditOpen(false)} title="Edit Position" width={560}>
+                <div>
+                    {editError && <div className="login-error" style={{ marginBottom: 16 }}>{editError}</div>}
+                    <div className="form-grid">
+                        <div className="form-group">
+                            <label>Title *</label>
+                            <input className="form-input" value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} />
+                        </div>
+                        <div className="form-group">
+                            <label>Department *</label>
+                            <input className="form-input" value={editForm.department} onChange={e => setEditForm({ ...editForm, department: e.target.value })} />
+                        </div>
+                        <div className="form-group">
+                            <label>Location</label>
+                            <input className="form-input" value={editForm.location} onChange={e => setEditForm({ ...editForm, location: e.target.value })} />
+                        </div>
+                        <div className="form-group">
+                            <label>Hiring Manager *</label>
+                            <input className="form-input" value={editForm.managerName} onChange={e => setEditForm({ ...editForm, managerName: e.target.value })} />
+                        </div>
+                        <div className="form-group">
+                            <label>No. of Positions</label>
+                            <input className="form-input" type="number" min="1" value={editForm.numberOfPositions} onChange={e => setEditForm({ ...editForm, numberOfPositions: Number(e.target.value) })} />
+                        </div>
+                        <div className="form-group">
+                            <label>Salary Min (LPA)</label>
+                            <input className="form-input" type="number" value={editForm.salaryRangeMin} onChange={e => setEditForm({ ...editForm, salaryRangeMin: e.target.value })} />
+                        </div>
+                        <div className="form-group">
+                            <label>Salary Max (LPA)</label>
+                            <input className="form-input" type="number" value={editForm.salaryRangeMax} onChange={e => setEditForm({ ...editForm, salaryRangeMax: e.target.value })} />
+                        </div>
+                    </div>
+                    <div className="form-group" style={{ marginTop: 8 }}>
+                        <label>Description</label>
+                        <textarea className="form-textarea" rows={3} value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} />
+                    </div>
+                    <div className="form-group">
+                        <label>Requirements</label>
+                        <textarea className="form-textarea" rows={3} value={editForm.requirements} onChange={e => setEditForm({ ...editForm, requirements: e.target.value })} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+                        <button className="btn btn-secondary" onClick={() => setEditOpen(false)} disabled={saving}>Cancel</button>
+                        <button className="btn btn-primary" onClick={handleEditSave} disabled={saving}>
+                            {saving ? 'Saving...' : 'Save Changes'}
                         </button>
                     </div>
                 </div>

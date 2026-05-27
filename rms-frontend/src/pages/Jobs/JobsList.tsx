@@ -12,11 +12,17 @@ export default function JobsList() {
     const navigate = useNavigate();
     const { isAdmin } = useAuth();
 
-    useEffect(() => { loadJobs(); }, [search, statusFilter]);
+    // Date filter — default to current year
+    const currentYear = new Date().getFullYear();
+    const [dateFrom, setDateFrom] = useState(`${currentYear}-01-01`);
+    const [dateTo, setDateTo] = useState('');
+
+    useEffect(() => { loadJobs(); }, [search, statusFilter, dateFrom, dateTo]);
 
     const loadJobs = async () => {
         try {
-            const { data } = await jobsApi.getAll({ search, status: statusFilter });
+            const dateParams = { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
+            const { data } = await jobsApi.getAll({ search, status: statusFilter, ...dateParams });
             setJobs(data);
         } catch (err) { console.error(err); }
         finally { setLoading(false); }
@@ -56,6 +62,26 @@ export default function JobsList() {
                         <button className="btn btn-primary" onClick={() => navigate('/jobs/create')}>+ New Position</button>
                     </div>
                 )}
+            </div>
+
+            {/* Date Filter */}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>From</label>
+                    <input type="date" className="form-input" style={{ padding: '6px 10px', maxWidth: 160 }}
+                        value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>To</label>
+                    <input type="date" className="form-input" style={{ padding: '6px 10px', maxWidth: 160 }}
+                        value={dateTo} onChange={e => setDateTo(e.target.value)} />
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setDateFrom(`${currentYear}-01-01`); setDateTo(''); }}>
+                    Reset to {currentYear}
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setDateFrom(''); setDateTo(''); }}>
+                    All Time
+                </button>
             </div>
 
             <div className="search-bar">

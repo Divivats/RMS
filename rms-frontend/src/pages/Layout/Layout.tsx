@@ -57,6 +57,16 @@ const Icons = {
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
     ),
+    onboarding: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><polyline points="17 11 19 13 23 9" />
+        </svg>
+    ),
+    clipboard: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+        </svg>
+    ),
 };
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -66,9 +76,13 @@ const iconMap: Record<string, React.ReactNode> = {
     plus: Icons.plus,
     userPlus: Icons.userPlus,
     users: Icons.users,
+    onboarding: Icons.onboarding,
+    clipboard: Icons.clipboard,
 };
 
-const navItems = [
+type Section = 'recruitment' | 'onboarding';
+
+const recruitmentItems = [
     {
         section: 'Main',
         links: [
@@ -82,7 +96,16 @@ const navItems = [
         links: [
             { to: '/jobs/create', label: 'Create Position', icon: 'plus', roles: ['Admin'] },
             { to: '/candidates/create', label: 'Add Candidate', icon: 'userPlus', roles: ['Admin'] },
-            { to: '/consultants', label: 'Consultants', icon: 'users', roles: ['Admin'] },
+            { to: '/consultants', label: 'Add Account', icon: 'users', roles: ['Admin'] },
+        ],
+    },
+];
+
+const onboardingItems = [
+    {
+        section: 'Onboarding',
+        links: [
+            { to: '/onboarding', label: 'Onboarding', icon: 'clipboard', roles: ['Admin', 'Consultant'] },
         ],
     },
 ];
@@ -94,6 +117,14 @@ export default function Layout() {
         return localStorage.getItem('sidebar-collapsed') === 'true';
     });
     const [isTransitioning, setIsTransitioning] = useState(false);
+
+    // Auto-detect section from URL
+    const currentSection: Section = location.pathname.startsWith('/onboarding') ? 'onboarding' : 'recruitment';
+    const [activeSection, setActiveSection] = useState<Section>(currentSection);
+
+    useEffect(() => {
+        setActiveSection(location.pathname.startsWith('/onboarding') ? 'onboarding' : 'recruitment');
+    }, [location.pathname]);
 
     useEffect(() => {
         setIsTransitioning(true);
@@ -109,6 +140,8 @@ export default function Layout() {
 
     if (!user) return <Navigate to="/login" replace />;
 
+    const navItems = activeSection === 'recruitment' ? recruitmentItems : onboardingItems;
+
     const getPageTitle = () => {
         const path = location.pathname;
         if (path === '/') return { title: 'Dashboard', sub: 'Overview of your recruitment pipeline' };
@@ -119,6 +152,8 @@ export default function Layout() {
         if (path === '/candidates/create') return { title: 'Add Candidate', sub: 'Register a new candidate' };
         if (path.startsWith('/candidates/')) return { title: 'Candidate Profile', sub: 'Detailed candidate view' };
         if (path.startsWith('/interviews/')) return { title: 'Interview Evaluation', sub: 'Complete the evaluation form' };
+        if (path === '/onboarding') return { title: 'Onboarding', sub: 'Track employee & intern progress' };
+        if (path.startsWith('/onboarding/')) return { title: 'Onboarding Details', sub: 'Probation & evaluation tracking' };
         return { title: 'RMS', sub: '' };
     };
 
@@ -143,6 +178,66 @@ export default function Layout() {
                     )}
                 </div>
 
+                {/* ── Section Toggle ── */}
+                {!collapsed && (
+                    <div style={{ padding: '4px 12px', marginBottom: 4 }}>
+                        <div style={{
+                            display: 'flex', borderRadius: 'var(--radius-md)',
+                            background: 'rgba(255,255,255,0.06)', padding: 3, gap: 2,
+                        }}>
+                            {([
+                                { key: 'recruitment' as Section, label: 'Recruitment', icon: Icons.briefcase },
+                                { key: 'onboarding' as Section, label: 'Onboarding', icon: Icons.onboarding },
+                            ]).map(s => (
+                                <NavLink
+                                    key={s.key}
+                                    to={s.key === 'recruitment' ? '/' : '/onboarding'}
+                                    onClick={() => setActiveSection(s.key)}
+                                    style={{
+                                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                        padding: '8px 0', borderRadius: 'var(--radius-sm)',
+                                        fontSize: '0.75rem', fontWeight: 600, textDecoration: 'none',
+                                        transition: 'all 0.25s ease', cursor: 'pointer', border: 'none',
+                                        background: activeSection === s.key ? 'var(--accent)' : 'transparent',
+                                        color: activeSection === s.key ? '#fff' : 'var(--text-sidebar)',
+                                    }}
+                                >
+                                    {s.label}
+                                </NavLink>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {collapsed && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginBottom: 8, padding: '0 4px' }}>
+                        <NavLink
+                            to="/"
+                            onClick={() => setActiveSection('recruitment')}
+                            title="Recruitment"
+                            style={{
+                                width: 36, height: 36, borderRadius: 'var(--radius-sm)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: activeSection === 'recruitment' ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
+                                color: activeSection === 'recruitment' ? '#fff' : 'var(--text-sidebar)',
+                                transition: 'all 0.2s ease',
+                            }}
+                        >{Icons.briefcase}</NavLink>
+                        <NavLink
+                            to="/onboarding"
+                            onClick={() => setActiveSection('onboarding')}
+                            title="Onboarding"
+                            style={{
+                                width: 36, height: 36, borderRadius: 'var(--radius-sm)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: activeSection === 'onboarding' ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
+                                color: activeSection === 'onboarding' ? '#fff' : 'var(--text-sidebar)',
+                                transition: 'all 0.2s ease',
+                            }}
+                        >{Icons.onboarding}</NavLink>
+                    </div>
+                )}
+
                 <nav className="sidebar-nav">
                     {navItems.map((section) => {
                         const visibleLinks = section.links.filter(
@@ -157,7 +252,7 @@ export default function Layout() {
                                     <NavLink
                                         key={link.to}
                                         to={link.to}
-                                        end={link.to === '/'}
+                                        end={link.to === '/' || link.to === '/onboarding'}
                                         className={({ isActive }) =>
                                             `sidebar-link ${isActive ? 'active' : ''}`
                                         }

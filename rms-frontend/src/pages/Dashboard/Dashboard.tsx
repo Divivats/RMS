@@ -11,6 +11,11 @@ export default function Dashboard() {
     const [recentCandidates, setRecentCandidates] = useState<CandidateListItem[]>([]);
     const [loading, setLoading] = useState(true);
     
+    // Date filter — default to current year
+    const currentYear = new Date().getFullYear();
+    const [dateFrom, setDateFrom] = useState(`${currentYear}-01-01`);
+    const [dateTo, setDateTo] = useState('');
+
     // Modal state
     const [selectedStat, setSelectedStat] = useState<string | null>(null);
     const [modalData, setModalData] = useState<any[]>([]);
@@ -21,15 +26,16 @@ export default function Dashboard() {
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [dateFrom, dateTo]);
 
     const loadData = async () => {
         try {
+            const dateParams = { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
             const [statsRes, activityRes, pipelineRes, candidatesRes] = await Promise.all([
-                dashboardApi.getStats(),
-                dashboardApi.getRecentActivity(),
-                dashboardApi.getPipeline(),
-                candidatesApi.getAll({}),
+                dashboardApi.getStats(dateParams),
+                dashboardApi.getRecentActivity(dateParams),
+                dashboardApi.getPipeline(dateParams),
+                candidatesApi.getAll({ ...dateParams }),
             ]);
             setStats(statsRes.data);
             setActivity(activityRes.data);
@@ -72,17 +78,18 @@ export default function Dashboard() {
         setModalData([]);
 
         try {
+            const dateParams = { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
             if (statType === 'jobs') {
-                const res = await jobsApi.getAll();
+                const res = await jobsApi.getAll({ ...dateParams });
                 setModalData(res.data);
             } else if (statType === 'hired') {
-                const res = await candidatesApi.getAll({ status: 'Recruited' });
+                const res = await candidatesApi.getAll({ status: 'Recruited', ...dateParams });
                 setModalData(res.data);
             } else if (statType === 'pipeline') {
-                const res = await candidatesApi.getAll({ status: 'InProgress' });
+                const res = await candidatesApi.getAll({ status: 'InProgress', ...dateParams });
                 setModalData(res.data);
             } else if (statType === 'rate') {
-                const res = await candidatesApi.getAll();
+                const res = await candidatesApi.getAll({ ...dateParams });
                 setModalData(res.data);
             }
         } catch (err) {
@@ -119,6 +126,26 @@ export default function Dashboard() {
 
     return (
         <div>
+            {/* Date Filter */}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>From</label>
+                    <input type="date" className="form-input" style={{ padding: '6px 10px', maxWidth: 160 }}
+                        value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>To</label>
+                    <input type="date" className="form-input" style={{ padding: '6px 10px', maxWidth: 160 }}
+                        value={dateTo} onChange={e => setDateTo(e.target.value)} />
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setDateFrom(`${currentYear}-01-01`); setDateTo(''); }}>
+                    Reset to {currentYear}
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setDateFrom(''); setDateTo(''); }}>
+                    All Time
+                </button>
+            </div>
+
             {/* Stats Grid */}
             <div className="stats-grid">
                 <div className="stat-card blue" onClick={() => handleStatClick('jobs')} style={{ cursor: 'pointer' }}>

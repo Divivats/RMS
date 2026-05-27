@@ -172,6 +172,87 @@ GO
 -- Consultant accounts can be created via the Admin UI.
 GO
 
+-- ============================================
+-- Add Education columns to Candidates
+-- ============================================
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Candidates') AND name = 'Education10thSchool')
+BEGIN
+    ALTER TABLE Candidates ADD
+        Education10thSchool NVARCHAR(200) NULL,
+        Education10thPercentage DECIMAL(5,2) NULL,
+        Education12thSchool NVARCHAR(200) NULL,
+        Education12thPercentage DECIMAL(5,2) NULL,
+        EducationCollegeName NVARCHAR(200) NULL,
+        EducationCollegeDegree NVARCHAR(200) NULL,
+        EducationCollegeCGPA DECIMAL(4,2) NULL;
+END
+GO
+
+-- Update Candidates status to include 'Onboarded'
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK__Candidate__Statu__' OR parent_object_id = OBJECT_ID('Candidates'))
+BEGIN
+    DECLARE @constraintName NVARCHAR(200);
+    SELECT @constraintName = name FROM sys.check_constraints
+        WHERE parent_object_id = OBJECT_ID('Candidates') AND definition LIKE '%Status%';
+    IF @constraintName IS NOT NULL
+        EXEC('ALTER TABLE Candidates DROP CONSTRAINT ' + @constraintName);
+END
+GO
+ALTER TABLE Candidates ADD CONSTRAINT CK_Candidates_Status
+    CHECK (Status IN ('New', 'InProgress', 'Recruited', 'Rejected', 'Onboarded'));
+GO
+
+-- ============================================
+-- Onboarding Records Table
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='OnboardingRecords' AND xtype='U')
+BEGIN
+    CREATE TABLE OnboardingRecords (
+        Id INT IDENTITY(1,1) PRIMARY KEY,
+        CandidateId INT NOT NULL,
+        Type NVARCHAR(50) NOT NULL CHECK (Type IN ('Employee', 'Intern')),
+        GhrId NVARCHAR(100) NULL,
+        KnoxId NVARCHAR(100) NULL,
+        ProjectLead NVARCHAR(200) NULL,
+        ProjectManager NVARCHAR(200) NULL,
+        DateOfJoining DATE NOT NULL,
+        Department NVARCHAR(150) NULL,
+        Designation NVARCHAR(200) NULL,
+        EvaluationMonths INT NOT NULL DEFAULT 6,
+        Status NVARCHAR(50) NOT NULL DEFAULT 'Active' CHECK (Status IN ('Active', 'Completed', 'Terminated')),
+        CreatedById INT NOT NULL,
+        CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        UpdatedAt DATETIME2 NULL,
+        CONSTRAINT FK_Onboarding_Candidate FOREIGN KEY (CandidateId) REFERENCES Candidates(Id),
+        CONSTRAINT FK_Onboarding_CreatedBy FOREIGN KEY (CreatedById) REFERENCES Users(Id)
+    );
+END
+GO
+
+-- ============================================
+-- Onboarding Milestones Table
+-- ============================================
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='OnboardingMilestones' AND xtype='U')
+BEGIN
+    CREATE TABLE OnboardingMilestones (
+        Id INT IDENTITY(1,1) PRIMARY KEY,
+        OnboardingRecordId INT NOT NULL,
+        MonthNumber INT NOT NULL,
+        BuddyReportUrl NVARCHAR(500) NULL,
+        OneToOneReportUrl NVARCHAR(500) NULL,
+        MidTermReportUrl NVARCHAR(500) NULL,
+        PerformanceRating INT NULL CHECK (PerformanceRating >= 1 AND PerformanceRating <= 5),
+        PerformanceRemarks NVARCHAR(MAX) NULL,
+        Status NVARCHAR(50) NOT NULL DEFAULT 'Pending' CHECK (Status IN ('Pending', 'Completed')),
+        UnlocksAt DATE NOT NULL,
+        CompletedAt DATETIME2 NULL,
+        CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        CONSTRAINT FK_Milestones_Onboarding FOREIGN KEY (OnboardingRecordId) REFERENCES OnboardingRecords(Id) ON DELETE CASCADE,
+        CONSTRAINT UQ_Milestones_Month UNIQUE (OnboardingRecordId, MonthNumber)
+    );
+END
+GO
+
 -- Seed Evaluation Questions
 IF NOT EXISTS (SELECT 1 FROM EvaluationQuestions)
 BEGIN
@@ -194,5 +275,19 @@ BEGIN
 END
 GO
 
-PRINT 'RMS Database created and seeded successfully.';
+-- ============================================
+-- ATS Score columns on Candidates
+-- ============================================
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Candidates') AND name = 'AtsScore')
+BEGIN
+    ALTER TABLE Candidates ADD
+        AtsScore DECIMAL(5,2) NULL,
+        AtsDeterministicScore DECIMAL(5,2) NULL,
+        AtsAiScore DECIMAL(5,2) NULL,
+        ResumeTextContent NVARCHAR(MAX) NULL,
+        AtsScoreDetails NVARCHAR(MAX) NULL;
+END
+GO
+
+PRINT 'RMS Database created and seeded successfully (with Onboarding + ATS tables).';
 GO

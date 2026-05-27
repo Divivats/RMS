@@ -16,14 +16,37 @@ namespace RmsApi.Controllers
         public DashboardController(AppDbContext db) => _db = db;
 
         [HttpGet("stats")]
-        public async Task<IActionResult> GetStats()
+        public async Task<IActionResult> GetStats([FromQuery] DateTime? dateFrom, [FromQuery] DateTime? dateTo)
         {
-            var totalJobs = await _db.JobPositions.CountAsync();
-            var openJobs = await _db.JobPositions.CountAsync(j => j.Status == "Open");
-            var totalCandidates = await _db.Candidates.CountAsync();
-            var hired = await _db.Candidates.CountAsync(c => c.Status == "Recruited");
-            var active = await _db.Candidates.CountAsync(c => c.Status == "InProgress" || c.Status == "New");
-            var rejected = await _db.Candidates.CountAsync(c => c.Status == "Rejected");
+            var jobsQuery = _db.JobPositions.AsQueryable();
+            var candidatesQuery = _db.Candidates.Where(c => c.Status != "Onboarded");
+
+            // Date filter — default to current year
+            if (dateFrom.HasValue)
+            {
+                jobsQuery = jobsQuery.Where(j => j.CreatedAt >= dateFrom.Value);
+                candidatesQuery = candidatesQuery.Where(c => c.CreatedAt >= dateFrom.Value);
+            }
+            else
+            {
+                var yearStart = new DateTime(DateTime.UtcNow.Year, 1, 1);
+                jobsQuery = jobsQuery.Where(j => j.CreatedAt >= yearStart);
+                candidatesQuery = candidatesQuery.Where(c => c.CreatedAt >= yearStart);
+            }
+
+            if (dateTo.HasValue)
+            {
+                var dateToEnd = dateTo.Value.Date.AddDays(1);
+                jobsQuery = jobsQuery.Where(j => j.CreatedAt < dateToEnd);
+                candidatesQuery = candidatesQuery.Where(c => c.CreatedAt < dateToEnd);
+            }
+
+            var totalJobs = await jobsQuery.CountAsync();
+            var openJobs = await jobsQuery.CountAsync(j => j.Status == "Open");
+            var totalCandidates = await candidatesQuery.CountAsync();
+            var hired = await candidatesQuery.CountAsync(c => c.Status == "Recruited");
+            var active = await candidatesQuery.CountAsync(c => c.Status == "InProgress" || c.Status == "New");
+            var rejected = await candidatesQuery.CountAsync(c => c.Status == "Rejected");
 
             return Ok(new DashboardStatsDto
             {
@@ -38,13 +61,27 @@ namespace RmsApi.Controllers
         }
 
         [HttpGet("recent-activity")]
-        public async Task<IActionResult> GetRecentActivity()
+        public async Task<IActionResult> GetRecentActivity([FromQuery] DateTime? dateFrom, [FromQuery] DateTime? dateTo)
         {
-            var recent = await _db.CandidateInterviews
+            var interviewQuery = _db.CandidateInterviews
                 .Include(ci => ci.Candidate)
                     .ThenInclude(c => c!.JobPosition)
                 .Include(ci => ci.InterviewStep)
-                .Where(ci => ci.CompletedAt != null)
+                .Where(ci => ci.CompletedAt != null);
+
+            // Date filter — default to current year
+            if (dateFrom.HasValue)
+                interviewQuery = interviewQuery.Where(ci => ci.CompletedAt >= dateFrom.Value);
+            else
+                interviewQuery = interviewQuery.Where(ci => ci.CompletedAt!.Value.Year >= DateTime.UtcNow.Year);
+
+            if (dateTo.HasValue)
+            {
+                var dateToEnd = dateTo.Value.Date.AddDays(1);
+                interviewQuery = interviewQuery.Where(ci => ci.CompletedAt < dateToEnd);
+            }
+
+            var recent = await interviewQuery
                 .OrderByDescending(ci => ci.CompletedAt)
                 .Take(10)
                 .Select(ci => new RecentActivityDto
@@ -58,8 +95,22 @@ namespace RmsApi.Controllers
                 }).ToListAsync();
 
             // Also include newly created candidates
-            var newCandidates = await _db.Candidates
+            var newCandQuery = _db.Candidates
                 .Include(c => c.JobPosition)
+                .AsQueryable();
+
+            if (dateFrom.HasValue)
+                newCandQuery = newCandQuery.Where(c => c.CreatedAt >= dateFrom.Value);
+            else
+                newCandQuery = newCandQuery.Where(c => c.CreatedAt.Year >= DateTime.UtcNow.Year);
+
+            if (dateTo.HasValue)
+            {
+                var dateToEnd = dateTo.Value.Date.AddDays(1);
+                newCandQuery = newCandQuery.Where(c => c.CreatedAt < dateToEnd);
+            }
+
+            var newCandidates = await newCandQuery
                 .OrderByDescending(c => c.CreatedAt)
                 .Take(5)
                 .Select(c => new RecentActivityDto
@@ -77,12 +128,26 @@ namespace RmsApi.Controllers
         }
 
         [HttpGet("pipeline")]
-        public async Task<IActionResult> GetPipeline()
+        public async Task<IActionResult> GetPipeline([FromQuery] DateTime? dateFrom, [FromQuery] DateTime? dateTo)
         {
-            var newCount = await _db.Candidates.CountAsync(c => c.Status == "New");
-            var inProgress = await _db.Candidates.CountAsync(c => c.Status == "InProgress");
-            var recruited = await _db.Candidates.CountAsync(c => c.Status == "Recruited");
-            var rejected = await _db.Candidates.CountAsync(c => c.Status == "Rejected");
+            var query = _db.Candidates.AsQueryable();
+
+            // Date filter — default to current year
+            if (dateFrom.HasValue)
+                query = query.Where(c => c.CreatedAt >= dateFrom.Value);
+            else
+                query = query.Where(c => c.CreatedAt.Year >= DateTime.UtcNow.Year);
+
+            if (dateTo.HasValue)
+            {
+                var dateToEnd = dateTo.Value.Date.AddDays(1);
+                query = query.Where(c => c.CreatedAt < dateToEnd);
+            }
+
+            var newCount = await query.CountAsync(c => c.Status == "New");
+            var inProgress = await query.CountAsync(c => c.Status == "InProgress");
+            var recruited = await query.CountAsync(c => c.Status == "Recruited");
+            var rejected = await query.CountAsync(c => c.Status == "Rejected");
 
             var pipeline = new List<PipelineStageDto>
             {

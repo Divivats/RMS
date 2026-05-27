@@ -10,19 +10,25 @@ export default function CandidatesList() {
     const [statusFilter, setStatusFilter] = useState('');
     const navigate = useNavigate();
 
-    useEffect(() => { loadCandidates(); }, [search, statusFilter]);
+    // Date filter — default to current year
+    const currentYear = new Date().getFullYear();
+    const [dateFrom, setDateFrom] = useState(`${currentYear}-01-01`);
+    const [dateTo, setDateTo] = useState('');
+
+    useEffect(() => { loadCandidates(); }, [search, statusFilter, dateFrom, dateTo]);
 
     const loadCandidates = async () => {
         try {
-            const { data } = await candidatesApi.getAll({ search, status: statusFilter });
+            const dateParams = { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
+            const { data } = await candidatesApi.getAll({ search, status: statusFilter, ...dateParams });
             setCandidates(data);
         } catch (err) { console.error(err); }
         finally { setLoading(false); }
     };
 
     const getStatusBadge = (status: string) => {
-        const cls: Record<string, string> = { New: 'badge-new', InProgress: 'badge-progress', Recruited: 'badge-recruited', Rejected: 'badge-rejected' };
-        const labels: Record<string, string> = { InProgress: 'In Progress' };
+        const cls: Record<string, string> = { New: 'badge-new', InProgress: 'badge-progress', Recruited: 'badge-recruited', Rejected: 'badge-rejected', Onboarded: 'badge-recruited' };
+        const labels: Record<string, string> = { InProgress: 'In Progress', Onboarded: '✓ Onboarded' };
         return <span className={`badge ${cls[status] || ''}`}>{labels[status] || status}</span>;
     };
 
@@ -32,6 +38,26 @@ export default function CandidatesList() {
         <div>
             <div className="page-header">
                 <h2>Candidates ({candidates.length})</h2>
+            </div>
+
+            {/* Date Filter */}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>From</label>
+                    <input type="date" className="form-input" style={{ padding: '6px 10px', maxWidth: 160 }}
+                        value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>To</label>
+                    <input type="date" className="form-input" style={{ padding: '6px 10px', maxWidth: 160 }}
+                        value={dateTo} onChange={e => setDateTo(e.target.value)} />
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setDateFrom(`${currentYear}-01-01`); setDateTo(''); }}>
+                    Reset to {currentYear}
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setDateFrom(''); setDateTo(''); }}>
+                    All Time
+                </button>
             </div>
 
             <div className="search-bar">
@@ -57,6 +83,7 @@ export default function CandidatesList() {
                                 <th>Position</th>
                                 <th>Experience</th>
                                 <th>AlphaCoder</th>
+                                <th>ATS Score</th>
                                 <th>Progress</th>
                                 <th>Status</th>
                             </tr>
@@ -86,6 +113,11 @@ export default function CandidatesList() {
                                         ) : '—'}
                                     </td>
                                     <td>
+                                        {c.atsScore != null ? (
+                                            <span style={{ fontWeight: 600, color: (c.atsScore >= 70 ? 'var(--success)' : c.atsScore >= 50 ? 'var(--warning)' : 'var(--danger)') }}>{c.atsScore}%</span>
+                                        ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                                    </td>
+                                    <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                             <div style={{ flex: 1, height: 6, background: 'var(--bg-primary)', borderRadius: 3, maxWidth: 80, overflow: 'hidden' }}>
                                                 <div style={{ height: '100%', borderRadius: 3, background: c.status === 'Rejected' ? 'var(--danger)' : c.status === 'Recruited' ? 'var(--success)' : 'var(--accent)', width: `${c.totalSteps > 0 ? (c.currentStepNumber / c.totalSteps) * 100 : 0}%`, transition: 'width 0.5s ease' }} />
@@ -97,7 +129,7 @@ export default function CandidatesList() {
                                 </tr>
                             ))}
                             {candidates.length === 0 && (
-                                <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No candidates found</td></tr>
+                                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No candidates found</td></tr>
                             )}
                         </tbody>
                     </table>
