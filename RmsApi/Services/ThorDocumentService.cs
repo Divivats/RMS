@@ -135,13 +135,8 @@ namespace RmsApi.Services
 
         private async Task<ThorUploadResponse?> UploadDocumentAsync(Stream fileStream, string fileName)
         {
-            // Reset stream position to ensure we read from the beginning
-            if (fileStream.CanSeek)
-            {
-                fileStream.Position = 0;
-            }
+            if (fileStream.CanSeek) fileStream.Position = 0;
 
-            // Read the entire file into a byte array to avoid stream position issues
             using var memoryStream = new MemoryStream();
             await fileStream.CopyToAsync(memoryStream);
             var fileBytes = memoryStream.ToArray();
@@ -154,53 +149,74 @@ namespace RmsApi.Services
                 return null;
             }
 
-            using var content = new MultipartFormDataContent();
-            var byteContent = new ByteArrayContent(fileBytes);
-
-            // Send correct MIME type based on extension — THOR Python docs show this explicitly
-            // e.g. ('file',('sample_file.txt',open(...),'text/plain'))
-            var ext = Path.GetExtension(fileName).ToLowerInvariant();
-            var mimeType = ext switch
-            {
-                ".pdf" => "application/pdf",
-                ".doc" => "application/msword",
-                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                ".txt" => "text/plain",
-                ".rtf" => "application/rtf",
-                _ => "application/octet-stream"
-            };
-            byteContent.Headers.ContentType = new MediaTypeHeaderValue(mimeType);
-
-            // Make filename unique for THOR — it rejects duplicates
-            var uniqueFileName = $"{Guid.NewGuid():N}{ext}";
-            content.Add(byteContent, "file", uniqueFileName);
-
-            // Log first bytes for debugging
             var headerHex = BitConverter.ToString(fileBytes, 0, Math.Min(16, fileBytes.Length));
-            _logger.LogInformation("THOR: Uploading as '{UniqueName}', first bytes: {Header}", uniqueFileName, headerHex);
+            _logger.LogInformation("THOR: Uploading '{FileName}', first bytes: {Header}", fileName, headerHex);
 
-            var request = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/thor/doc/upload_document")
+            // ── Use Python requests for upload (proven to work with THOR's FastAPI) ──
+            // .NET HttpClient is incompatible with THOR's server regardless of header settings.
+            var tempFilePath = Path.Combine(Path.GetTempPath(), $"thor_{Guid.NewGuid():N}{Path.GetExtension(fileName)}");
+            try
             {
-                Content = content
-            };
-            request.Headers.TryAddWithoutValidation("Authorization", _apiKey);
+                await File.WriteAllBytesAsync(tempFilePath, fileBytes);
 
-            var response = await _httpClient.SendAsync(request);
-            var json = await response.Content.ReadAsStringAsync();
+                // Find thor_upload.py script
+                var scriptPath = Path.Combine(AppContext.BaseDirectory, "thor_upload.py");
+                if (!File.Exists(scriptPath))
+                    scriptPath = Path.Combine(Directory.GetCurrentDirectory(), "thor_upload.py");
 
-            _logger.LogInformation("THOR upload response ({StatusCode}): {Response}",
-                response.StatusCode, json.Length > 500 ? json[..500] : json);
+                if (!File.Exists(scriptPath))
+                {
+                    _logger.LogError("THOR: thor_upload.py not found");
+                    return null;
+                }
 
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("THOR upload failed: HTTP {StatusCode} — {Response}", response.StatusCode, json);
-                return null;
+                _logger.LogInformation("THOR: Using Python upload via {ScriptPath}", scriptPath);
+
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "python",
+                    Arguments = $"\"{scriptPath}\" \"{tempFilePath}\" \"{_apiKey}\" \"{_baseUrl}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using var process = System.Diagnostics.Process.Start(psi);
+                if (process == null)
+                {
+                    _logger.LogError("THOR: Failed to start Python process");
+                    return null;
+                }
+
+                var stdout = await process.StandardOutput.ReadToEndAsync();
+                var stderr = await process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                _logger.LogInformation("THOR: Python upload result: {Output}", stdout);
+                if (!string.IsNullOrEmpty(stderr))
+                    _logger.LogWarning("THOR: Python stderr: {Stderr}", stderr);
+
+                if (process.ExitCode != 0 || string.IsNullOrWhiteSpace(stdout))
+                {
+                    _logger.LogError("THOR: Python upload failed (exit code {ExitCode})", process.ExitCode);
+                    return null;
+                }
+
+                var pyResult = JsonSerializer.Deserialize<PythonUploadResult>(stdout, JsonOpts);
+                if (pyResult == null || !pyResult.Success || string.IsNullOrEmpty(pyResult.JobId))
+                {
+                    _logger.LogError("THOR upload failed via Python: {Error}", pyResult?.Error ?? "Unknown error");
+                    return null;
+                }
+
+                _logger.LogInformation("THOR: Upload SUCCESS — job_id={JobId}", pyResult.JobId);
+                return new ThorUploadResponse { JobId = pyResult.JobId, FileName = pyResult.Filename ?? fileName };
             }
-
-            var result = JsonSerializer.Deserialize<ThorApiResponse<ThorUploadResult>>(json, JsonOpts);
-            return result?.Result != null
-                ? new ThorUploadResponse { JobId = result.Result.JobId, FileName = result.Result.FileName }
-                : null;
+            finally
+            {
+                try { if (File.Exists(tempFilePath)) File.Delete(tempFilePath); } catch { }
+            }
         }
 
         // ════════════════════════════════════════
@@ -264,8 +280,6 @@ namespace RmsApi.Services
                 Content = content
             };
             request.Headers.TryAddWithoutValidation("Authorization", _apiKey);
-            request.Headers.Add("Access-Control-Allow-Origin", "*");
-            request.Headers.Add("access-control-allow-credentials", "true");
 
             // THOR streams the response as text/plain
             using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
@@ -354,6 +368,24 @@ namespace RmsApi.Services
         {
             public string JobId { get; set; } = "";
             public string FileName { get; set; } = "";
+        }
+
+        private class PythonUploadResult
+        {
+            [JsonPropertyName("success")]
+            public bool Success { get; set; }
+
+            [JsonPropertyName("status_code")]
+            public int StatusCode { get; set; }
+
+            [JsonPropertyName("job_id")]
+            public string JobId { get; set; } = "";
+
+            [JsonPropertyName("filename")]
+            public string? Filename { get; set; }
+
+            [JsonPropertyName("error")]
+            public string Error { get; set; } = "";
         }
     }
 

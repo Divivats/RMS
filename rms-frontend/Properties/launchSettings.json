@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "rms-frontend": {
+      "commandName": "Project",
+      "launchBrowser": false
+    }
+  }
+}

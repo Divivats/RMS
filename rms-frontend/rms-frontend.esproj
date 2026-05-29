@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk/1.0.586930">
+
+  <PropertyGroup>
+    <!-- Command to run on project start for debugging -->
+    <StartupCommand>npm run dev</StartupCommand>
+    <!-- Folder where production build output will go -->
+    <PublishAssetsDirectory>$(MSBuildProjectDirectory)\dist\</PublishAssetsDirectory>
+    <!-- Disable automatic npm install/restore during build -->
+    <ShouldRunNpmInstall>false</ShouldRunNpmInstall>
+    <!-- Disable build script (npm run build) during solution build -->
+    <ShouldRunBuildScript>false</ShouldRunBuildScript>
+  </PropertyGroup>
+
+</Project>

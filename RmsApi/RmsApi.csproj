@@ -18,4 +18,11 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
+  <!-- Python helper for THOR document upload (workaround for .NET HttpClient incompatibility) -->
+  <ItemGroup>
+    <None Update="thor_upload.py">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
