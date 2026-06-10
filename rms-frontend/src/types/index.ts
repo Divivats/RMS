@@ -2,7 +2,7 @@ export interface User {
   userId: number;
   fullName: string;
   email: string;
-  role: 'Admin' | 'Consultant';
+  role: 'Admin' | 'Consultant' | 'ProjectManager' | 'MD';
   token: string;
 }
 
@@ -20,6 +20,12 @@ export interface JobPosition {
   salaryRangeMin?: number;
   salaryRangeMax?: number;
   status: string;
+  approvalStatus: string;
+  approvalComments?: string;
+  approvedByMDName?: string;
+  approvedByMDAt?: string;
+  approvedByAdminName?: string;
+  approvedByAdminAt?: string;
   createdByName?: string;
   totalCandidates: number;
   hiredCandidates: number;
@@ -116,6 +122,10 @@ export interface DashboardStats {
   activeCandidates: number;
   rejectedCandidates: number;
   hiringRate: number;
+  // PM/MD specific
+  pendingApproval?: number;
+  approvedJobs?: number;
+  rejectedJobs?: number;
 }
 
 export interface RecentActivity {
@@ -130,6 +140,19 @@ export interface RecentActivity {
 export interface PipelineStage {
   stageName: string;
   count: number;
+}
+
+// ── Notification Types ──
+
+export interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  type: string;
+  relatedEntityType?: string;
+  relatedEntityId?: number;
+  isRead: boolean;
+  createdAt: string;
 }
 
 // ── Onboarding Types ──

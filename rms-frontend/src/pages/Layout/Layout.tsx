@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
-import { NavLink, Outlet, useLocation, Navigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { NavLink, Outlet, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { notificationsApi } from '../../services/api';
 import Loader from '../../components/Loader';
 import BackgroundAnimation from '../../components/BackgroundAnimation';
+import type { Notification } from '../../types';
+
 /* ── SVG Icon Components ────────────────────────────── */
 const Icons = {
     dashboard: (
@@ -67,6 +70,11 @@ const Icons = {
             <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
         </svg>
     ),
+    bell: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+    ),
 };
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -82,24 +90,37 @@ const iconMap: Record<string, React.ReactNode> = {
 
 type Section = 'recruitment' | 'onboarding';
 
-const recruitmentItems = [
-    {
-        section: 'Main',
-        links: [
-            { to: '/', label: 'Dashboard', icon: 'dashboard', roles: ['Admin', 'Consultant'] },
-            { to: '/jobs', label: 'Job Positions', icon: 'briefcase', roles: ['Admin', 'Consultant'] },
-            { to: '/candidates', label: 'Candidates', icon: 'user', roles: ['Admin', 'Consultant'] },
-        ],
-    },
-    {
-        section: 'Management',
-        links: [
-            { to: '/jobs/create', label: 'Create Position', icon: 'plus', roles: ['Admin'] },
-            { to: '/candidates/create', label: 'Add Candidate', icon: 'userPlus', roles: ['Admin'] },
-            { to: '/consultants', label: 'Add Account', icon: 'users', roles: ['Admin'] },
-        ],
-    },
-];
+const getRoleLabel = (role: string) => {
+    switch (role) {
+        case 'Admin': return 'HR / Admin';
+        case 'Consultant': return 'Consultant';
+        case 'ProjectManager': return 'Project Manager';
+        case 'MD': return 'Managing Director';
+        default: return role;
+    }
+};
+
+const getRecruitmentItems = (role: string) => {
+    const items: { section: string; links: { to: string; label: string; icon: string; roles: string[] }[] }[] = [
+        {
+            section: 'Main',
+            links: [
+                { to: '/', label: 'Dashboard', icon: 'dashboard', roles: ['Admin', 'Consultant', 'ProjectManager', 'MD'] },
+                { to: '/jobs', label: 'Job Positions', icon: 'briefcase', roles: ['Admin', 'Consultant', 'ProjectManager', 'MD'] },
+                { to: '/candidates', label: 'Candidates', icon: 'user', roles: ['Admin', 'Consultant', 'ProjectManager', 'MD'] },
+            ],
+        },
+        {
+            section: 'Management',
+            links: [
+                { to: '/jobs/create', label: 'Create Position', icon: 'plus', roles: ['Admin', 'ProjectManager'] },
+                { to: '/candidates/create', label: 'Add Candidate', icon: 'userPlus', roles: ['Admin'] },
+                { to: '/consultants', label: 'User Management', icon: 'users', roles: ['Admin'] },
+            ],
+        },
+    ];
+    return items;
+};
 
 const onboardingItems = [
     {
@@ -111,16 +132,43 @@ const onboardingItems = [
 ];
 
 export default function Layout() {
-    const { user, logout, isAdmin } = useAuth();
+    const { user, logout, isAdmin, isProjectManager, isMD } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
     const [collapsed, setCollapsed] = useState(() => {
         return localStorage.getItem('sidebar-collapsed') === 'true';
     });
     const [isTransitioning, setIsTransitioning] = useState(false);
 
+    // Notifications state
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [showNotifications, setShowNotifications] = useState(false);
+
     // Auto-detect section from URL
     const currentSection: Section = location.pathname.startsWith('/onboarding') ? 'onboarding' : 'recruitment';
     const [activeSection, setActiveSection] = useState<Section>(currentSection);
+
+    // Fetch unread count every 30 seconds
+    const fetchUnreadCount = useCallback(async () => {
+        try {
+            const res = await notificationsApi.getUnreadCount();
+            setUnreadCount(res.data.count);
+        } catch { /* ignore */ }
+    }, []);
+
+    const fetchNotifications = useCallback(async () => {
+        try {
+            const res = await notificationsApi.getAll();
+            setNotifications(res.data);
+        } catch { /* ignore */ }
+    }, []);
+
+    useEffect(() => {
+        fetchUnreadCount();
+        const interval = setInterval(fetchUnreadCount, 30000);
+        return () => clearInterval(interval);
+    }, [fetchUnreadCount]);
 
     useEffect(() => {
         setActiveSection(location.pathname.startsWith('/onboarding') ? 'onboarding' : 'recruitment');
@@ -140,7 +188,36 @@ export default function Layout() {
 
     if (!user) return <Navigate to="/login" replace />;
 
-    const navItems = activeSection === 'recruitment' ? recruitmentItems : onboardingItems;
+    const handleBellClick = async () => {
+        if (!showNotifications) {
+            await fetchNotifications();
+        }
+        setShowNotifications(!showNotifications);
+    };
+
+    const handleNotificationClick = async (notification: Notification) => {
+        if (!notification.isRead) {
+            await notificationsApi.markRead(notification.id);
+            setUnreadCount(prev => Math.max(0, prev - 1));
+            setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n));
+        }
+        setShowNotifications(false);
+        // Navigate to related entity
+        if (notification.relatedEntityType === 'JobPosition' && notification.relatedEntityId) {
+            navigate(`/jobs/${notification.relatedEntityId}`);
+        }
+    };
+
+    const handleMarkAllRead = async () => {
+        await notificationsApi.markAllRead();
+        setUnreadCount(0);
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    };
+
+    const navItems = activeSection === 'recruitment' ? getRecruitmentItems(user.role) : onboardingItems;
+
+    // PM and MD should not see onboarding section toggle
+    const showOnboardingToggle = !isProjectManager && !isMD;
 
     const getPageTitle = () => {
         const path = location.pathname;
@@ -159,6 +236,17 @@ export default function Layout() {
 
     const page = getPageTitle();
     const initials = user.fullName.split(' ').map(n => n[0]).join('').toUpperCase();
+
+    const formatTimeAgo = (dateStr: string) => {
+        const diff = Date.now() - new Date(dateStr).getTime();
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'Just now';
+        if (mins < 60) return `${mins}m ago`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return `${hrs}h ago`;
+        const days = Math.floor(hrs / 24);
+        return `${days}d ago`;
+    };
 
     return (
         <div className="app-layout">
@@ -179,7 +267,7 @@ export default function Layout() {
                 </div>
 
                 {/* ── Section Toggle ── */}
-                {!collapsed && (
+                {!collapsed && showOnboardingToggle && (
                     <div style={{ padding: '4px 12px', marginBottom: 4 }}>
                         <div style={{
                             display: 'flex', borderRadius: 'var(--radius-md)',
@@ -209,7 +297,7 @@ export default function Layout() {
                     </div>
                 )}
 
-                {collapsed && (
+                {collapsed && showOnboardingToggle && (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginBottom: 8, padding: '0 4px' }}>
                         <NavLink
                             to="/"
@@ -272,7 +360,7 @@ export default function Layout() {
                     {!collapsed && (
                         <div className="sidebar-user-info">
                             <div className="sidebar-user-name">{user.fullName}</div>
-                            <div className="sidebar-user-role">{user.role === 'Admin' ? 'HR / Admin' : 'Consultant'}</div>
+                            <div className="sidebar-user-role">{getRoleLabel(user.role)}</div>
                         </div>
                     )}
                     <button className="sidebar-logout" onClick={() => {
@@ -290,9 +378,162 @@ export default function Layout() {
                         <h1>{page.title}</h1>
                         {page.sub && <p>{page.sub}</p>}
                     </div>
-                    <div className="topbar-actions">
+                    <div className="topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {/* Notification Bell */}
+                        <div style={{ position: 'relative' }}>
+                            <button
+                                onClick={handleBellClick}
+                                style={{
+                                    background: 'rgba(255,255,255,0.08)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: 'var(--radius-md)',
+                                    padding: '8px',
+                                    cursor: 'pointer',
+                                    color: 'var(--text-secondary)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    position: 'relative',
+                                    transition: 'all 0.2s ease',
+                                }}
+                                title="Notifications"
+                            >
+                                {Icons.bell}
+                                {unreadCount > 0 && (
+                                    <span style={{
+                                        position: 'absolute',
+                                        top: -4,
+                                        right: -4,
+                                        background: 'var(--danger)',
+                                        color: '#fff',
+                                        fontSize: '0.65rem',
+                                        fontWeight: 700,
+                                        borderRadius: '50%',
+                                        minWidth: 18,
+                                        height: 18,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: '0 4px',
+                                        animation: 'pulse 2s ease-in-out infinite',
+                                    }}>
+                                        {unreadCount > 99 ? '99+' : unreadCount}
+                                    </span>
+                                )}
+                            </button>
+
+                            {/* Notification Dropdown */}
+                            {showNotifications && (
+                                <>
+                                    <div
+                                        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 }}
+                                        onClick={() => setShowNotifications(false)}
+                                    />
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 'calc(100% + 8px)',
+                                        right: 0,
+                                        width: 380,
+                                        maxHeight: 480,
+                                        background: 'var(--card-bg)',
+                                        border: '1px solid var(--border)',
+                                        borderRadius: 'var(--radius-lg)',
+                                        boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+                                        zIndex: 999,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        overflow: 'hidden',
+                                        backdropFilter: 'blur(20px)',
+                                    }}>
+                                        <div style={{
+                                            padding: '14px 16px',
+                                            borderBottom: '1px solid var(--border)',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                        }}>
+                                            <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                                                Notifications
+                                            </span>
+                                            {unreadCount > 0 && (
+                                                <button
+                                                    onClick={handleMarkAllRead}
+                                                    style={{
+                                                        background: 'none', border: 'none', color: 'var(--accent)',
+                                                        fontSize: '0.78rem', cursor: 'pointer', fontWeight: 600,
+                                                    }}
+                                                >
+                                                    Mark all read
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div style={{ overflowY: 'auto', flex: 1 }}>
+                                            {notifications.length === 0 ? (
+                                                <div style={{
+                                                    padding: '40px 16px',
+                                                    textAlign: 'center',
+                                                    color: 'var(--text-secondary)',
+                                                    fontSize: '0.85rem',
+                                                }}>
+                                                    No notifications yet
+                                                </div>
+                                            ) : (
+                                                notifications.map(n => (
+                                                    <div
+                                                        key={n.id}
+                                                        onClick={() => handleNotificationClick(n)}
+                                                        style={{
+                                                            padding: '12px 16px',
+                                                            borderBottom: '1px solid rgba(255,255,255,0.04)',
+                                                            cursor: 'pointer',
+                                                            background: n.isRead ? 'transparent' : 'rgba(99, 102, 241, 0.06)',
+                                                            transition: 'background 0.2s',
+                                                        }}
+                                                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                                                        onMouseLeave={e => (e.currentTarget.style.background = n.isRead ? 'transparent' : 'rgba(99, 102, 241, 0.06)')}
+                                                    >
+                                                        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                                                            {!n.isRead && (
+                                                                <div style={{
+                                                                    width: 8, height: 8, borderRadius: '50%',
+                                                                    background: 'var(--accent)', marginTop: 6, flexShrink: 0,
+                                                                }} />
+                                                            )}
+                                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                                <div style={{
+                                                                    fontWeight: 600, fontSize: '0.82rem',
+                                                                    color: 'var(--text-primary)', marginBottom: 2,
+                                                                }}>
+                                                                    {n.title}
+                                                                </div>
+                                                                <div style={{
+                                                                    fontSize: '0.78rem', color: 'var(--text-secondary)',
+                                                                    lineHeight: 1.4,
+                                                                    overflow: 'hidden', textOverflow: 'ellipsis',
+                                                                    display: '-webkit-box', WebkitLineClamp: 2,
+                                                                    WebkitBoxOrient: 'vertical',
+                                                                }}>
+                                                                    {n.message}
+                                                                </div>
+                                                                <div style={{
+                                                                    fontSize: '0.7rem', color: 'var(--text-secondary)',
+                                                                    marginTop: 4, opacity: 0.7,
+                                                                }}>
+                                                                    {formatTimeAgo(n.createdAt)}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
                         <span className="badge badge-open" style={{ fontSize: '0.8rem' }}>
-                            {isAdmin ? 'HR / Admin' : 'Consultant'}
+                            {getRoleLabel(user.role)}
                         </span>
                     </div>
                 </header>

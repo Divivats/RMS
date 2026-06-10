@@ -56,6 +56,7 @@ namespace RmsApi.DTOs
         public int NumberOfPositions { get; set; }
         public int InterviewStepCount { get; set; }
         public string Status { get; set; } = string.Empty;
+        public string ApprovalStatus { get; set; } = string.Empty;
         public int TotalCandidates { get; set; }
         public int HiredCandidates { get; set; }
         public int ActiveCandidates { get; set; }
@@ -69,6 +70,11 @@ namespace RmsApi.DTOs
         public decimal? SalaryRangeMin { get; set; }
         public decimal? SalaryRangeMax { get; set; }
         public string? CreatedByName { get; set; }
+        public string? ApprovalComments { get; set; }
+        public string? ApprovedByMDName { get; set; }
+        public DateTime? ApprovedByMDAt { get; set; }
+        public string? ApprovedByAdminName { get; set; }
+        public DateTime? ApprovedByAdminAt { get; set; }
         public List<InterviewStepDto> InterviewSteps { get; set; } = new();
         public List<CandidateListDto> Candidates { get; set; } = new();
     }
@@ -185,6 +191,10 @@ namespace RmsApi.DTOs
         public int ActiveCandidates { get; set; }
         public int RejectedCandidates { get; set; }
         public double HiringRate { get; set; }
+        // PM/MD-specific fields (null for Admin/Consultant)
+        public int? PendingApproval { get; set; }
+        public int? ApprovedJobs { get; set; }
+        public int? RejectedJobs { get; set; }
     }
 
     public class RecentActivityDto
@@ -220,6 +230,7 @@ namespace RmsApi.DTOs
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
+        public string Role { get; set; } = "Consultant";
     }
 
     public class UpdateUserRequest
@@ -311,5 +322,26 @@ namespace RmsApi.DTOs
         public string? Department { get; set; }
         public string? Designation { get; set; }
         public string? Status { get; set; }
+    }
+
+    // ── Approval Workflow DTOs ──
+
+    public class ApprovalActionRequest
+    {
+        public string? Comments { get; set; }
+    }
+
+    // ── Notification DTOs ──
+
+    public class NotificationDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string? RelatedEntityType { get; set; }
+        public int? RelatedEntityId { get; set; }
+        public bool IsRead { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 }

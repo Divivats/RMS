@@ -15,9 +15,22 @@ import OnboardingDashboard from './pages/Onboarding/OnboardingDashboard';
 import OnboardingDetail from './pages/Onboarding/OnboardingDetail';
 import './index.css';
 
+/** Only Admin can access */
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { isAdmin } = useAuth();
   return isAdmin ? <>{children}</> : <Navigate to="/" replace />;
+}
+
+/** Admin or ProjectManager can access */
+function JobCreatorRoute({ children }: { children: React.ReactNode }) {
+  const { isAdmin, isProjectManager } = useAuth();
+  return (isAdmin || isProjectManager) ? <>{children}</> : <Navigate to="/" replace />;
+}
+
+/** Admin and Consultant only (not PM/MD) */
+function HRRoute({ children }: { children: React.ReactNode }) {
+  const { isAdmin, isConsultant } = useAuth();
+  return (isAdmin || isConsultant) ? <>{children}</> : <Navigate to="/" replace />;
 }
 
 function App() {
@@ -29,16 +42,16 @@ function App() {
           <Route element={<Layout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/jobs" element={<JobsList />} />
-            <Route path="/jobs/create" element={<AdminRoute><CreateJob /></AdminRoute>} />
+            <Route path="/jobs/create" element={<JobCreatorRoute><CreateJob /></JobCreatorRoute>} />
             <Route path="/jobs/:id" element={<JobDetail />} />
             <Route path="/candidates" element={<CandidatesList />} />
             <Route path="/candidates/create" element={<AdminRoute><CreateCandidate /></AdminRoute>} />
             <Route path="/candidates/:id" element={<CandidateDetail />} />
-            <Route path="/interviews/:candidateId/step/:stepNumber" element={<InterviewEvaluation />} />
+            <Route path="/interviews/:candidateId/step/:stepNumber" element={<HRRoute><InterviewEvaluation /></HRRoute>} />
             <Route path="/consultants" element={<AdminRoute><ConsultantManagement /></AdminRoute>} />
-            {/* Onboarding */}
-            <Route path="/onboarding" element={<OnboardingDashboard />} />
-            <Route path="/onboarding/:id" element={<OnboardingDetail />} />
+            {/* Onboarding — only Admin and Consultant */}
+            <Route path="/onboarding" element={<HRRoute><OnboardingDashboard /></HRRoute>} />
+            <Route path="/onboarding/:id" element={<HRRoute><OnboardingDetail /></HRRoute>} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -26,7 +26,7 @@ namespace RmsApi.Controllers
 
         /// <summary>Move a recruited candidate to onboarding</summary>
         [HttpPost("move")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Consultant")]
         public async Task<IActionResult> MoveToOnboarding([FromBody] MoveToOnboardingRequest request)
         {
             var candidate = await _db.Candidates.FindAsync(request.CandidateId);

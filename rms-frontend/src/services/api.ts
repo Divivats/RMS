@@ -42,13 +42,19 @@ export const dashboardApi = {
 };
 
 export const jobsApi = {
-    getAll: (params?: { search?: string; status?: string; dateFrom?: string; dateTo?: string }) =>
+    getAll: (params?: { search?: string; status?: string; approvalStatus?: string; dateFrom?: string; dateTo?: string }) =>
         api.get('/jobpositions', { params }),
     getById: (id: number) => api.get(`/jobpositions/${id}`),
     create: (data: any) => api.post('/jobpositions', data),
     update: (id: number, data: any) => api.put(`/jobpositions/${id}`, data),
     updateStatus: (id: number, status: string) => api.patch(`/jobpositions/${id}/status`, { status }),
     delete: (id: number) => api.delete(`/jobpositions/${id}`),
+    // Approval workflow
+    submitForApproval: (id: number) => api.post(`/jobpositions/${id}/submit`),
+    approve: (id: number, comments?: string) => api.post(`/jobpositions/${id}/approve`, { comments }),
+    reject: (id: number, comments: string) => api.post(`/jobpositions/${id}/reject`, { comments }),
+    activate: (id: number, comments?: string) => api.post(`/jobpositions/${id}/activate`, { comments }),
+    sendBack: (id: number, comments: string) => api.post(`/jobpositions/${id}/send-back`, { comments }),
 };
 
 export const candidatesApi = {
@@ -86,11 +92,18 @@ export const interviewsApi = {
 export const usersApi = {
     getAll: () => api.get('/users'),
     getById: (id: number) => api.get(`/users/${id}`),
-    create: (data: { fullName: string; email: string; password: string }) =>
+    create: (data: { fullName: string; email: string; password: string; role: string }) =>
         api.post('/users', data),
     update: (id: number, data: { fullName?: string; email?: string; password?: string; isActive?: boolean }) =>
         api.put(`/users/${id}`, data),
     delete: (id: number) => api.delete(`/users/${id}`),
+};
+
+export const notificationsApi = {
+    getAll: (page?: number) => api.get('/notifications', { params: { page } }),
+    getUnreadCount: () => api.get('/notifications/unread-count'),
+    markRead: (id: number) => api.post(`/notifications/${id}/read`),
+    markAllRead: () => api.post('/notifications/read-all'),
 };
 
 export const onboardingApi = {

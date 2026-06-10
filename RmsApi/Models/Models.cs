@@ -32,6 +32,16 @@ namespace RmsApi.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 
+        // Approval workflow
+        public string ApprovalStatus { get; set; } = "Active";
+        public string? ApprovalComments { get; set; }
+        public int? ApprovedByMDId { get; set; }
+        public User? ApprovedByMD { get; set; }
+        public DateTime? ApprovedByMDAt { get; set; }
+        public int? ApprovedByAdminId { get; set; }
+        public User? ApprovedByAdmin { get; set; }
+        public DateTime? ApprovedByAdminAt { get; set; }
+
         public ICollection<InterviewStep> InterviewSteps { get; set; } = new List<InterviewStep>();
         public ICollection<Candidate> Candidates { get; set; } = new List<Candidate>();
     }
@@ -169,6 +179,22 @@ namespace RmsApi.Models
         public string Status { get; set; } = "Pending";
         public DateTime UnlocksAt { get; set; }
         public DateTime? CompletedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    }
+
+    // ── Notification Model ──
+
+    public class Notification
+    {
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public User? User { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string? RelatedEntityType { get; set; }
+        public int? RelatedEntityId { get; set; }
+        public bool IsRead { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

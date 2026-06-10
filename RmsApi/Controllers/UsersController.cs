@@ -15,12 +15,12 @@ namespace RmsApi.Controllers
 
         public UsersController(AppDbContext db) => _db = db;
 
-        // GET api/users — list all consultant accounts
+        // GET api/users — list all non-admin accounts
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var users = await _db.Users
-                .Where(u => u.Role == "Consultant")
+                .Where(u => u.Role != "Admin")
                 .OrderByDescending(u => u.CreatedAt)
                 .Select(u => new UserListDto
                 {
@@ -56,7 +56,7 @@ namespace RmsApi.Controllers
             });
         }
 
-        // POST api/users — create a new consultant
+        // POST api/users — create a new user account (Consultant, ProjectManager, or MD)
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateUserRequest request)
         {
@@ -66,6 +66,10 @@ namespace RmsApi.Controllers
             if (request.Password.Length < 6)
                 return BadRequest(new { message = "Password must be at least 6 characters." });
 
+            var allowedRoles = new[] { "Consultant", "ProjectManager", "MD" };
+            if (!allowedRoles.Contains(request.Role))
+                return BadRequest(new { message = $"Invalid role. Allowed roles: {string.Join(", ", allowedRoles)}" });
+
             if (await _db.Users.AnyAsync(u => u.Email == request.Email))
                 return BadRequest(new { message = "A user with this email already exists." });
 
@@ -74,7 +78,7 @@ namespace RmsApi.Controllers
                 FullName = request.FullName,
                 Email = request.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                Role = "Consultant",
+                Role = request.Role,
                 IsActive = true
             };
 

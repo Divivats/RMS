@@ -16,10 +16,11 @@ export default function ConsultantManagement() {
     const [users, setUsers] = useState<ConsultantUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [roleFilter, setRoleFilter] = useState('');
 
     // Create modal
     const [createOpen, setCreateOpen] = useState(false);
-    const [createForm, setCreateForm] = useState({ fullName: '', email: '', password: '' });
+    const [createForm, setCreateForm] = useState({ fullName: '', email: '', password: '', role: 'Consultant' });
     const [createError, setCreateError] = useState('');
     const [creating, setCreating] = useState(false);
 
@@ -60,11 +61,21 @@ export default function ConsultantManagement() {
         try {
             await usersApi.create(createForm);
             setCreateOpen(false);
-            setCreateForm({ fullName: '', email: '', password: '' });
+            setCreateForm({ fullName: '', email: '', password: '', role: 'Consultant' });
             loadUsers();
         } catch (err: any) {
             setCreateError(err.response?.data?.message || 'Failed to create account.');
         } finally { setCreating(false); }
+    };
+
+    const getRoleBadge = (role: string) => {
+        const styles: Record<string, { bg: string; color: string; label: string }> = {
+            Consultant: { bg: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', label: 'Consultant' },
+            ProjectManager: { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', label: 'Project Manager' },
+            MD: { bg: 'rgba(168, 85, 247, 0.15)', color: '#a855f7', label: 'Managing Director' },
+        };
+        const s = styles[role] || { bg: 'rgba(148,163,184,0.15)', color: '#94a3b8', label: role };
+        return <span style={{ background: s.bg, color: s.color, padding: '3px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600 }}>{s.label}</span>;
     };
 
     // ── Edit ──
@@ -117,10 +128,12 @@ export default function ConsultantManagement() {
         } finally { setDeleting(false); }
     };
 
-    const filtered = users.filter(u =>
-        u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.email.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filtered = users.filter(u => {
+        const matchesSearch = u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            u.email.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesRole = !roleFilter || u.role === roleFilter;
+        return matchesSearch && matchesRole;
+    });
 
     if (loading) {
         return (
@@ -146,7 +159,7 @@ export default function ConsultantManagement() {
             <div className="page-header">
                 <h2>Manage Accounts</h2>
                 <div className="page-header-actions">
-                    <button className="btn btn-primary" onClick={() => { setCreateForm({ fullName: '', email: '', password: '' }); setCreateError(''); setCreateOpen(true); }}>
+                    <button className="btn btn-primary" onClick={() => { setCreateForm({ fullName: '', email: '', password: '', role: 'Consultant' }); setCreateError(''); setCreateOpen(true); }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                             <path d="M12 5v14M5 12h14" />
                         </svg>
@@ -168,6 +181,13 @@ export default function ConsultantManagement() {
                         onChange={e => setSearchQuery(e.target.value)}
                     />
                 </div>
+                <div className="filter-group">
+                    {['', 'Consultant', 'ProjectManager', 'MD'].map(f => (
+                        <button key={f} className={`filter-btn ${roleFilter === f ? 'active' : ''}`} onClick={() => setRoleFilter(f)}>
+                            {f === '' ? 'All' : f === 'ProjectManager' ? 'PM' : f}
+                        </button>
+                    ))}
+                </div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                     {filtered.length} account{filtered.length !== 1 ? 's' : ''}
                 </div>
@@ -181,6 +201,7 @@ export default function ConsultantManagement() {
                             <tr>
                                 <th>Name</th>
                                 <th>Email</th>
+                                <th>Role</th>
                                 <th>Status</th>
                                 <th>Created</th>
                                 <th style={{ textAlign: 'right' }}>Actions</th>
@@ -198,6 +219,7 @@ export default function ConsultantManagement() {
                                         </div>
                                     </td>
                                     <td>{u.email}</td>
+                                    <td>{getRoleBadge(u.role)}</td>
                                     <td>
                                         <span className={`badge ${u.isActive ? 'badge-open' : 'badge-rejected'}`}>
                                             {u.isActive ? 'Active' : 'Inactive'}
@@ -226,7 +248,7 @@ export default function ConsultantManagement() {
                             ))}
                             {filtered.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 32 }}>
+                                    <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 32 }}>
                                         {searchQuery ? 'No accounts matching your search.' : 'No accounts yet. Create one to get started.'}
                                     </td>
                                 </tr>
@@ -254,6 +276,14 @@ export default function ConsultantManagement() {
                         <label>Password *</label>
                         <input className="form-input" type="password" placeholder="Min 6 characters" value={createForm.password}
                             onChange={e => setCreateForm({ ...createForm, password: e.target.value })} />
+                    </div>
+                    <div className="form-group">
+                        <label>Role *</label>
+                        <select className="form-input" value={createForm.role} onChange={e => setCreateForm({ ...createForm, role: e.target.value })}>
+                            <option value="Consultant">Consultant</option>
+                            <option value="ProjectManager">Project Manager</option>
+                            <option value="MD">Managing Director (MD)</option>
+                        </select>
                     </div>
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
                         <button className="btn btn-secondary" onClick={() => setCreateOpen(false)} disabled={creating}>Cancel</button>

@@ -12,7 +12,9 @@ export default function CandidateDetail() {
     const [loading, setLoading] = useState(true);
     const [showEval, setShowEval] = useState<number | null>(null);
     const navigate = useNavigate();
-    const { isAdmin } = useAuth();
+    const { isAdmin, isConsultant, isProjectManager, isMD } = useAuth();
+    const isViewOnly = isProjectManager || isMD;
+    const canManageCandidates = isAdmin || isConsultant;
 
     // Photo lightbox
     const [photoOpen, setPhotoOpen] = useState(false);
@@ -226,7 +228,7 @@ export default function CandidateDetail() {
                             Edit Candidate
                         </button>
                     )}
-                    {isAdmin && candidate.status === 'Recruited' && (
+                    {canManageCandidates && candidate.status === 'Recruited' && (
                         <button className="btn btn-primary" onClick={openOnboardModal} style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" />
@@ -347,7 +349,7 @@ export default function CandidateDetail() {
                             </div>
                         </div>
 
-                        {nextPendingStep && candidate.status !== 'Rejected' && (
+                        {nextPendingStep && candidate.status !== 'Rejected' && !isViewOnly && (
                             <button className="btn btn-primary btn-full" style={{ marginBottom: 16 }}
                                 onClick={() => navigate(`/interviews/${candidate.id}/step/${nextPendingStep.stepNumber}`)}>
                                 Conduct {nextPendingStep.stepName} →
@@ -675,7 +677,7 @@ export default function CandidateDetail() {
                                                         {showEval === interview.id ? 'Hide' : 'View'} Feedback
                                                     </button>
                                                 )}
-                                                {interview.status === 'Pending' && isCurrent && candidate.status !== 'Rejected' && (
+                                                {interview.status === 'Pending' && isCurrent && candidate.status !== 'Rejected' && !isViewOnly && (
                                                     <button className="btn btn-primary btn-sm" onClick={() => navigate(`/interviews/${candidate.id}/step/${interview.stepNumber}`)}>
                                                         Evaluate
                                                     </button>

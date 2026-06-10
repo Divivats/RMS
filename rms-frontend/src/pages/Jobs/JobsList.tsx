@@ -9,20 +9,26 @@ export default function JobsList() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const [approvalFilter, setApprovalFilter] = useState('');
     const navigate = useNavigate();
-    const { isAdmin } = useAuth();
+    const { isAdmin, isProjectManager, isMD } = useAuth();
 
     // Date filter — default to current year
     const currentYear = new Date().getFullYear();
     const [dateFrom, setDateFrom] = useState(`${currentYear}-01-01`);
     const [dateTo, setDateTo] = useState('');
 
-    useEffect(() => { loadJobs(); }, [search, statusFilter, dateFrom, dateTo]);
+    useEffect(() => { loadJobs(); }, [search, statusFilter, approvalFilter, dateFrom, dateTo]);
 
     const loadJobs = async () => {
         try {
             const dateParams = { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
-            const { data } = await jobsApi.getAll({ search, status: statusFilter, ...dateParams });
+            const { data } = await jobsApi.getAll({
+                search,
+                status: statusFilter || undefined,
+                approvalStatus: approvalFilter || undefined,
+                ...dateParams,
+            });
             setJobs(data);
         } catch (err) { console.error(err); }
         finally { setLoading(false); }
@@ -31,6 +37,55 @@ export default function JobsList() {
     const getStatusBadge = (status: string) => {
         const cls: Record<string, string> = { Open: 'badge-open', Closed: 'badge-closed', OnHold: 'badge-onhold' };
         return <span className={`badge ${cls[status] || ''}`}>{status === 'OnHold' ? 'On Hold' : status}</span>;
+    };
+
+    const getApprovalBadge = (status: string) => {
+        const styles: Record<string, { bg: string; color: string; label: string }> = {
+            PendingMDApproval: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', label: 'Pending MD' },
+            MDApproved: { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', label: 'MD Approved' },
+            MDRejected: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: 'Rejected' },
+            Active: { bg: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', label: 'Active' },
+            Draft: { bg: 'rgba(148, 163, 184, 0.15)', color: '#94a3b8', label: 'Draft' },
+        };
+        const s = styles[status] || { bg: 'rgba(148,163,184,0.15)', color: '#94a3b8', label: status };
+        return (
+            <span style={{
+                background: s.bg, color: s.color, padding: '3px 10px', borderRadius: 20,
+                fontSize: '0.75rem', fontWeight: 600,
+            }}>
+                {s.label}
+            </span>
+        );
+    };
+
+    // Approval filter tabs based on role
+    const getApprovalFilterOptions = () => {
+        if (isProjectManager) {
+            return [
+                { value: '', label: 'All' },
+                { value: 'PendingMDApproval', label: 'Pending' },
+                { value: 'MDApproved', label: 'Approved' },
+                { value: 'MDRejected', label: 'Rejected' },
+                { value: 'Active', label: 'Active' },
+            ];
+        }
+        if (isMD) {
+            return [
+                { value: '', label: 'All' },
+                { value: 'PendingMDApproval', label: 'Pending Approval' },
+                { value: 'MDApproved', label: 'Approved' },
+                { value: 'Active', label: 'Active' },
+                { value: 'MDRejected', label: 'Rejected' },
+            ];
+        }
+        // Admin: show MDApproved pending activation
+        if (isAdmin) {
+            return [
+                { value: '', label: 'All' },
+                { value: 'Active', label: 'Active' },
+            ];
+        }
+        return [];
     };
 
     if (loading) {
@@ -53,11 +108,13 @@ export default function JobsList() {
         );
     }
 
+    const showApprovalColumn = isProjectManager || isMD || isAdmin;
+
     return (
         <div>
             <div className="page-header">
                 <h2>Job Positions ({jobs.length})</h2>
-                {isAdmin && (
+                {(isAdmin || isProjectManager) && (
                     <div className="page-header-actions">
                         <button className="btn btn-primary" onClick={() => navigate('/jobs/create')}>+ New Position</button>
                     </div>
@@ -98,6 +155,21 @@ export default function JobsList() {
                 </div>
             </div>
 
+            {/* Approval filter tabs for PM/MD */}
+            {(isProjectManager || isMD) && (
+                <div className="filter-group" style={{ marginBottom: 16 }}>
+                    {getApprovalFilterOptions().map(opt => (
+                        <button
+                            key={opt.value}
+                            className={`filter-btn ${approvalFilter === opt.value ? 'active' : ''}`}
+                            onClick={() => setApprovalFilter(opt.value)}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
+            )}
+
             <div className="card">
                 <div className="table-wrapper">
                     <table className="data-table">
@@ -111,6 +183,7 @@ export default function JobsList() {
                                 <th>Candidates</th>
                                 <th>Hired</th>
                                 <th>Status</th>
+                                {showApprovalColumn && <th>Approval</th>}
                             </tr>
                         </thead>
                         <tbody>
@@ -124,10 +197,11 @@ export default function JobsList() {
                                     <td>{j.totalCandidates}</td>
                                     <td><span style={{ color: 'var(--success)', fontWeight: 600 }}>{j.hiredCandidates}</span></td>
                                     <td>{getStatusBadge(j.status)}</td>
+                                    {showApprovalColumn && <td>{getApprovalBadge(j.approvalStatus)}</td>}
                                 </tr>
                             ))}
                             {jobs.length === 0 && (
-                                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No job positions found</td></tr>
+                                <tr><td colSpan={showApprovalColumn ? 9 : 8} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No job positions found</td></tr>
                             )}
                         </tbody>
                     </table>

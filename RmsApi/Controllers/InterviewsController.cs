@@ -110,6 +110,7 @@ namespace RmsApi.Controllers
         }
 
         [HttpPost("advance")]
+        [Authorize(Roles = "Admin,Consultant")]
         public async Task<IActionResult> AdvanceCandidate([FromBody] AdvanceInterviewRequest request)
         {
             var candidate = await _db.Candidates

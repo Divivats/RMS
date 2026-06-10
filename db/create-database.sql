@@ -291,3 +291,60 @@ GO
 
 PRINT 'RMS Database created and seeded successfully (with Onboarding + ATS tables).';
 GO
+
+-- ============================================
+-- PM / MD Roles & Approval Workflow Migration
+-- ============================================
+
+-- 1. Update Users.Role CHECK constraint to allow ProjectManager and MD
+BEGIN
+    DECLARE @roleConstraint NVARCHAR(200);
+    SELECT @roleConstraint = name FROM sys.check_constraints
+        WHERE parent_object_id = OBJECT_ID('Users') AND definition LIKE '%Role%';
+    IF @roleConstraint IS NOT NULL
+        EXEC('ALTER TABLE Users DROP CONSTRAINT ' + @roleConstraint);
+END
+GO
+ALTER TABLE Users ADD CONSTRAINT CK_Users_Role
+    CHECK (Role IN ('Admin', 'Consultant', 'ProjectManager', 'MD'));
+GO
+
+-- 2. Add approval columns to JobPositions
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('JobPositions') AND name = 'ApprovalStatus')
+BEGIN
+    ALTER TABLE JobPositions ADD
+        ApprovalStatus NVARCHAR(50) NOT NULL DEFAULT 'Active',
+        ApprovalComments NVARCHAR(MAX) NULL,
+        ApprovedByMDId INT NULL,
+        ApprovedByMDAt DATETIME2 NULL,
+        ApprovedByAdminId INT NULL,
+        ApprovedByAdminAt DATETIME2 NULL;
+
+    ALTER TABLE JobPositions ADD
+        CONSTRAINT FK_JobPositions_ApprovedByMD FOREIGN KEY (ApprovedByMDId) REFERENCES Users(Id),
+        CONSTRAINT FK_JobPositions_ApprovedByAdmin FOREIGN KEY (ApprovedByAdminId) REFERENCES Users(Id);
+END
+GO
+
+-- 3. Create Notifications table
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Notifications' AND xtype='U')
+BEGIN
+    CREATE TABLE Notifications (
+        Id INT IDENTITY(1,1) PRIMARY KEY,
+        UserId INT NOT NULL,
+        Title NVARCHAR(200) NOT NULL,
+        Message NVARCHAR(500) NOT NULL,
+        Type NVARCHAR(50) NOT NULL,
+        RelatedEntityType NVARCHAR(50) NULL,
+        RelatedEntityId INT NULL,
+        IsRead BIT NOT NULL DEFAULT 0,
+        CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        CONSTRAINT FK_Notifications_User FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IX_Notifications_UserId_IsRead ON Notifications (UserId, IsRead);
+END
+GO
+
+PRINT 'PM/MD roles and approval workflow migration completed.';
+GO

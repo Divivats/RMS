@@ -16,6 +16,7 @@ namespace RmsApi.Data
         public DbSet<CandidateEvaluation> CandidateEvaluations => Set<CandidateEvaluation>();
         public DbSet<OnboardingRecord> OnboardingRecords => Set<OnboardingRecord>();
         public DbSet<OnboardingMilestone> OnboardingMilestones => Set<OnboardingMilestone>();
+        public DbSet<Notification> Notifications => Set<Notification>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -30,6 +31,8 @@ namespace RmsApi.Data
             {
                 e.HasIndex(j => j.JobId).IsUnique();
                 e.HasOne(j => j.CreatedBy).WithMany().HasForeignKey(j => j.CreatedById).OnDelete(DeleteBehavior.NoAction);
+                e.HasOne(j => j.ApprovedByMD).WithMany().HasForeignKey(j => j.ApprovedByMDId).OnDelete(DeleteBehavior.NoAction);
+                e.HasOne(j => j.ApprovedByAdmin).WithMany().HasForeignKey(j => j.ApprovedByAdminId).OnDelete(DeleteBehavior.NoAction);
                 e.Property(j => j.SalaryRangeMin).HasPrecision(18, 2);
                 e.Property(j => j.SalaryRangeMax).HasPrecision(18, 2);
             });
@@ -79,6 +82,13 @@ namespace RmsApi.Data
             {
                 e.HasIndex(m => new { m.OnboardingRecordId, m.MonthNumber }).IsUnique();
                 e.HasOne(m => m.OnboardingRecord).WithMany(o => o.Milestones).HasForeignKey(m => m.OnboardingRecordId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Notifications
+            modelBuilder.Entity<Notification>(e =>
+            {
+                e.HasOne(n => n.User).WithMany().HasForeignKey(n => n.UserId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(n => new { n.UserId, n.IsRead });
             });
         }
     }
